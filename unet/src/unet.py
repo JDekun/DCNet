@@ -48,7 +48,7 @@ class Up(nn.Module):
 
         x = torch.cat([x2, x1], dim=1)
         x = self.conv(x)
-        return x, y
+        return x, x1
 
 
 class OutConv(nn.Sequential):
@@ -93,4 +93,4 @@ class UNet(nn.Module):
         x, y4 = self.up4(x, x1)
         logits = self.out_conv(x)
 
-        return {"out": logits}
+        return {"out": logits, "encode": [x1, x2, x3, x4], "decode": [y1, y2, y3, y4]}
