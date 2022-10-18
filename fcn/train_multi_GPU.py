@@ -76,7 +76,7 @@ def main(args):
     num_classes = args.num_classes + 1
 
     # 用来保存coco_info的文件
-    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     VOC_root = args.data_path
     # check voc root
