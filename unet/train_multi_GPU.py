@@ -70,7 +70,7 @@ def main(args):
     std = (0.127, 0.079, 0.043)
 
     # 用来保存coco_info的文件
-    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     data_root = args.data_path
     # check data root
@@ -206,7 +206,7 @@ if __name__ == "__main__":
         description=__doc__)
 
     # 训练文件的根目录(DRIVE)
-    parser.add_argument('--data-path', default='../../../../input', help='dataset')
+    parser.add_argument('--data-path', default='../../../input', help='dataset')
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
