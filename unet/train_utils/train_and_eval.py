@@ -4,20 +4,40 @@ import train_utils.distributed_utils as utils
 from .dice_coefficient_loss import dice_loss, build_target
 
 
-def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100):
+def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100, temperature: float = 0.5, batch_size: int = 4):
     losses = {}
     for name, x in inputs.items():
         # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
-        loss = nn.functional.cross_entropy(x, target, ignore_index=ignore_index, weight=loss_weight)
-        if dice is True:
-            dice_target = build_target(target, num_classes, ignore_index)
-            loss += dice_loss(x, dice_target, multiclass=True, ignore_index=ignore_index)
-        losses[name] = loss
+        if name == 'out':
+            loss = nn.functional.cross_entropy(x, target, ignore_index=ignore_index, weight=loss_weight)
+            if dice is True:
+                dice_target = build_target(target, num_classes, ignore_index)
+                loss += dice_loss(x, dice_target, multiclass=True, ignore_index=ignore_index)
+            losses[name] = loss
+        else:
+            en = x[0].permute(0,2,3,1)
+            de = x[0].permute(0,2,3,1)
+            out_1 = en.contiguous().view([-1, en.shape[3]])
+            out_2 = de.contiguous().view([-1, de.shape[3]])
+            # [2*B*H*W, D]
+            out = torch.cat([out_1, out_2], dim=0)
+            # [2*B*H*W, 2*B*H*W]
+            sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+            mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
+            # [2*B*H*W, 2*B*H*W-1]
+            sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
+
+            # compute loss
+            pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
+            # [2*B]
+            pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
+            loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+            losses[name] = loss
 
     if len(losses) == 1:
         return losses['out']
 
-    return losses['out'] + 0.5 * losses['aux']
+    return losses['out'] + 0.5 * losses['L1']
 
 
 def evaluate(model, data_loader, device, num_classes):
@@ -58,7 +78,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(image)
-            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255)
+            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size=4)
 
         optimizer.zero_grad()
         if scaler is not None:

@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "train.py", line 201, in <module>
+    main(args)
+  File "train.py", line 124, in main
+    lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
+  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/train_and_eval.py", line 79, in train_one_epoch
+    loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size=4)
+  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/train_and_eval.py", line 19, in criterion
+    out_1 = x[0], out_2 = x[1]
+ValueError: too many values to unpack (expected 2)

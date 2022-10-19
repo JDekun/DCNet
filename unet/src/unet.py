@@ -87,10 +87,10 @@ class UNet(nn.Module):
         x3 = self.down2(x2)
         x4 = self.down3(x3)
         x5 = self.down4(x4)
-        x, y1 = self.up1(x5, x4)
-        x, y2 = self.up2(x, x3)
-        x, y3 = self.up3(x, x2)
-        x, y4 = self.up4(x, x1)
+        x, y4 = self.up1(x5, x4)
+        x, y3 = self.up2(x, x3)
+        x, y2 = self.up3(x, x2)
+        x, y1 = self.up4(x, x1)
         logits = self.out_conv(x)
 
-        return {"out": logits, "encode": [x1, x2, x3, x4], "decode": [y1, y2, y3, y4]}
+        return {"out": logits, "L1": [x1, y1], "L2": [x2, y2], "L3": [x3, y3], "L4": [x4, y4]}

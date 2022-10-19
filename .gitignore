@@ -4,3 +4,5 @@ fcn/fcn_resnet50_coco.pth
 
 unet/multi_train
 unet/__pycache__
+unet/src/__pycache__
+unet/train_utils/__pycache__
