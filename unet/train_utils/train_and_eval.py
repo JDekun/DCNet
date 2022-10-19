@@ -62,7 +62,7 @@ def evaluate(model, data_loader, device, num_classes):
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
-                    lr_scheduler, print_freq=10, scaler=None):
+                    lr_scheduler, print_freq=10, scaler=None, batch_size=1 ):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -78,7 +78,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(image)
-            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size=4)
+            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size = batch_size)
 
         optimizer.zero_grad()
         if scaler is not None:

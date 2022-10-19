@@ -9,7 +9,7 @@ from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from my_dataset import DriveDataset
 import transforms as T
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "7"
+os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
@@ -122,7 +122,7 @@ def main(args):
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         mean_loss, lr = train_one_epoch(model, optimizer, train_loader, device, epoch, num_classes,
-                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
+                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler ,batch_size=batch_size)
 
         confmat, dice = evaluate(model, val_loader, device=device, num_classes=num_classes)
         val_info = str(confmat)
@@ -169,7 +169,7 @@ def parse_args():
     # exclude background
     parser.add_argument("--num-classes", default=1, type=int)
     parser.add_argument("--device", default="cuda", help="training device")
-    parser.add_argument("-b", "--batch-size", default=4, type=int)
+    parser.add_argument("-b", "--batch-size", default=1, type=int)
     parser.add_argument("--epochs", default=200, type=int, metavar="N",
                         help="number of total epochs to train")
 
