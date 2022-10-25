@@ -1,10 +1,38 @@
 Traceback (most recent call last):
-  File "train.py", line 201, in <module>
-    main(args)
-  File "train.py", line 124, in main
-    lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
-  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/train_and_eval.py", line 79, in train_one_epoch
-    loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size=4)
-  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/train_and_eval.py", line 19, in criterion
-    out_1 = x[0], out_2 = x[1]
-ValueError: too many values to unpack (expected 2)
+  File "/home/zk/GIT/working/Double-Contrast/unet/train.py", line 8, in <module>
+    from train_utils import train_one_epoch, evaluate, create_lr_scheduler
+  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/__init__.py", line 1, in <module>
+    from .train_and_eval import train_one_epoch, evaluate, create_lr_scheduler
+  File "/home/zk/GIT/working/Double-Contrast/unet/train_utils/train_and_eval.py", line 37
+    if len(losses) == 1:
+IndentationError: expected an indented block
+ERROR:torch.distributed.elastic.multiprocessing.api:failed (exitcode: 1) local_rank: 0 (pid: 14089) of binary: /home/zk/anaconda3/bin/python
+Traceback (most recent call last):
+  File "/home/zk/anaconda3/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 345, in wrapper
+    return f(*args, **kwargs)
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/run.py", line 761, in main
+    run(args)
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/run.py", line 752, in run
+    elastic_launch(
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/launcher/api.py", line 131, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/launcher/api.py", line 245, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+============================================================
+train.py FAILED
+------------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2022-10-25_16:13:31
+  host      : GPU1
+  rank      : 0 (local_rank: 0)
+  exitcode  : 1 (pid: 14089)
+  error_file: <N/A>
+  traceback : To enable traceback see: https://pytorch.org/docs/stable/elastic/errors.html
+============================================================
