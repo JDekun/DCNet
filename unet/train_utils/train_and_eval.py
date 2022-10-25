@@ -14,25 +14,26 @@ def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool
                 dice_target = build_target(target, num_classes, ignore_index)
                 loss += dice_loss(x, dice_target, multiclass=True, ignore_index=ignore_index)
             losses[name] = loss
-        else:
-            en = x[0].permute(0,2,3,1)
-            de = x[0].permute(0,2,3,1)
-            out_1 = en.contiguous().view([-1, en.shape[3]])
-            out_2 = de.contiguous().view([-1, de.shape[3]])
-            # [2*B*H*W, D]
-            out = torch.cat([out_1, out_2], dim=0)
-            # [2*B*H*W, 2*B*H*W]
-            sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
-            mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
-            # [2*B*H*W, 2*B*H*W-1]
-            sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
+        # else:
+            # en = x[0].permute(0,2,3,1)
+            # de = x[0].permute(0,2,3,1)
+            # out_1 = en.contiguous().view([-1, en.shape[3]])
+            # out_2 = de.contiguous().view([-1, de.shape[3]])
+            # # [2*B*H*W, D]
+            # out = torch.cat([out_1, out_2], dim=0)
+            # # [2*B*H*W, 2*B*H*W]
+            # sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
+            # mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
+            # # [2*B*H*W, 2*B*H*W-1]
+            # sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
 
-            # compute loss
-            pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
-            # [2*B]
-            pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-            loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
-            losses[name] = loss
+            # # compute loss
+            # pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
+            # # [2*B]
+            # pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
+            # loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
+            # losses[name] = loss
+
 
     if len(losses) == 1:
         return losses['out']

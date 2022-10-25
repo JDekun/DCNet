@@ -55,7 +55,7 @@ def get_transform(train, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
 
 
 def create_model(num_classes):
-    model = UNet(in_channels=3, num_classes=num_classes, base_c=32)
+    model = UNet(in_channels=3, num_classes=num_classes, base_c=64)
     return model
 
 
