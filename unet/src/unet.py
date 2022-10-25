@@ -83,14 +83,19 @@ class UNet(nn.Module):
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x)
+
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
+
         x5 = self.down4(x4)
+
         x, y4 = self.up1(x5, x4)
         x, y3 = self.up2(x, x3)
         x, y2 = self.up3(x, x2)
-        x, y1 = self.up4(x, x1)
+        
+        x, _ = self.up4(x, x1)
+
         logits = self.out_conv(x)
 
-        return {"out": logits, "L4": [x4, y4], "L3": [x3, y3], "L2": [x2, y2], "L1": [x1, y1]}
+        return {"out": logits, "L4": [x4, y4], "L3": [x3, y3], "L2": [x2, y2]}
