@@ -13,3 +13,4 @@ unet/output-before
 
 *.swo
 *.swp
+*.pyc
