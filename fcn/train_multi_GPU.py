@@ -9,6 +9,7 @@ from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_dis
 from my_dataset import VOCSegmentation
 import transforms as T
 
+import wandb
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -50,7 +51,7 @@ def get_transform(train):
 
 def create_model(aux, num_classes):
     model = fcn_resnet50(aux=aux, num_classes=num_classes)
-    weights_dict = torch.load("./fcn_resnet50_coco.pth", map_location='cpu')
+    weights_dict = torch.load("./pre_trained/fcn_resnet50_coco.pth", map_location='cpu')
 
     if num_classes != 21:
         # 官方提供的预训练权重是21类(包括背景)
@@ -68,15 +69,20 @@ def create_model(aux, num_classes):
 
 
 def main(args):
+    ###### wandb ######
+    wandb.init(project="fcn")
+    wandb.config.update(args)
+    
     init_distributed_mode(args)
     print(args)
+
 
     device = torch.device(args.device)
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
     # 用来保存coco_info的文件
-    results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     VOC_root = args.data_path
     # check voc root
@@ -110,7 +116,7 @@ def main(args):
         collate_fn=train_dataset.collate_fn, drop_last=True)
 
     val_data_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=1,
+        val_dataset, batch_size=args.batch_size_val,
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=train_dataset.collate_fn)
 
@@ -169,20 +175,24 @@ def main(args):
             train_sampler.set_epoch(epoch)
         mean_loss, lr = train_one_epoch(model, optimizer, train_data_loader, device, epoch,
                                         lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
+        wandb.log({"mean_loss":mean_loss, "lr": lr})
 
         confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
+
         val_info = str(confmat)
         print(val_info)
 
-        # 只在主进程上进行写操作
-        if args.rank in [-1, 0]:
-            # write into txt
-            with open(results_file, "a") as f:
-                # 记录每个epoch对应的train_loss、lr以及验证集各指标
-                train_info = f"[epoch: {epoch}]\n" \
-                             f"train_loss: {mean_loss:.4f}\n" \
-                             f"lr: {lr:.6f}\n"
-                f.write(train_info + val_info + "\n\n")
+        
+
+        # # 只在主进程上进行写操作
+        # if args.rank in [-1, 0]:
+        #     # write into txt
+        #     with open(results_file, "a") as f:
+        #         # 记录每个epoch对应的train_loss、lr以及验证集各指标
+        #         train_info = f"[epoch: {epoch}]\n" \
+        #                      f"train_loss: {mean_loss:.4f}\n" \
+        #                      f"lr: {lr:.6f}\n"
+        #         f.write(train_info + val_info + "\n\n")
 
         if args.output_dir:
             # 只在主节点上执行保存权重操作
@@ -208,13 +218,15 @@ if __name__ == "__main__":
         description=__doc__)
 
     # 训练文件的根目录(VOCdevkit)
-    parser.add_argument('--data-path', default='../../../input/VOC', help='dataset')
+    parser.add_argument('--data-path', default='../../../../input/pascal', help='dataset')
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
     parser.add_argument('--num-classes', default=20, type=int, help='num_classes')
     # 每块GPU上的batch_size
-    parser.add_argument('-b', '--batch-size', default=4, type=int,
+    parser.add_argument('-b', '--batch-size', default=16, type=int,
+                        help='images per gpu, the total batch size is $NGPU x batch_size')
+    parser.add_argument('--batch-size-val', default=8, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument("--aux", default=True, type=bool, help="auxilier loss")
     # 指定接着从哪个epoch数开始训练
@@ -238,7 +250,7 @@ if __name__ == "__main__":
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 训练过程打印信息的频率
-    parser.add_argument('--print-freq', default=20, type=int, help='print frequency')
+    parser.add_argument('--print-freq', default=5, type=int, help='print frequency')
     # 文件保存地址
     parser.add_argument('--output-dir', default='./multi_train', help='path where to save')
     # 基于上次的训练结果接着训练
@@ -259,10 +271,17 @@ if __name__ == "__main__":
     parser.add_argument("--amp", default=False, type=bool,
                         help="Use torch.cuda.amp for mixed precision training")
 
+    # wandb设置
+    parser.add_argument('--wandb', default='run', type=str, help='run or dryrun')
+
     args = parser.parse_args()
 
     # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
     if args.output_dir:
         mkdir(args.output_dir)
+    
+    # wandb
+    os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
+    os.environ['WANDB_MODE'] = args.wandb
 
     main(args)

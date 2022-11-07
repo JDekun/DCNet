@@ -7,6 +7,7 @@ import torch.distributed as dist
 import errno
 import os
 
+import wandb
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a
@@ -111,6 +112,7 @@ class ConfusionMatrix(object):
 
     def __str__(self):
         acc_global, acc, iu = self.compute()
+        wandb.log({"acc_global":acc_global, "miou":iu.mean().item() * 100})
         return (
             'global correct: {:.1f}\n'
             'average row correct: {}\n'

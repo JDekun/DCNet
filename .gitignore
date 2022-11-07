@@ -1,6 +1,9 @@
 fcn/multi_train
 fcn/__pycache__
 fcn/fcn_resnet50_coco.pth
+fcn/wandb
+
+fcna/
 
 unet/multi_train
 unet/__pycache__

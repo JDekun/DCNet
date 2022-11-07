@@ -21,7 +21,7 @@ def evaluate(model, data_loader, device, num_classes):
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     with torch.no_grad():
-        for image, target in metric_logger.log_every(data_loader, 100, header):
+        for image, target in metric_logger.log_every(data_loader, 10, header):
             image, target = image.to(device), target.to(device)
             output = model(image)
             output = output['out']
