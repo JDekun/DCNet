@@ -2,6 +2,7 @@ fcn/multi_train
 fcn/__pycache__
 fcn/fcn_resnet50_coco.pth
 fcn/wandb
+fcn/pre_trained
 
 fcna/
 
