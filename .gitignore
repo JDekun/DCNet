@@ -7,6 +7,7 @@ fcn/pre_trained
 zfcn/
 
 unet/multi_train
+unet/save_weights
 unet/__pycache__
 unet/src/__pycache__
 unet/train_utils/__pycache__

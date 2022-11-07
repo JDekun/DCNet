@@ -4,11 +4,13 @@ import datetime
 
 import torch
 
-from src import UNet
+from src import UNet, DC_UNet, DCNet, VGG16UNet, MobileV3Unet
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import DriveDataset
 import transforms as T
 
+# 远程调试
+# import debugpy; debugpy.connect(('10.59.139.1', 5678))
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
@@ -53,8 +55,19 @@ def get_transform(train, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
         return SegmentationPresetEval(mean=mean, std=std)
 
 
-def create_model(num_classes):
-    model = UNet(in_channels=3, num_classes=num_classes, base_c=32)
+def create_model(num_classes,model_name):
+    if model_name == "DCNet":
+        model = DCNet(in_channels=3, num_classes=num_classes, base_c=64, proj_d = 128)
+    elif model_name == "DC_UNet":
+        model = DC_UNet(in_channels=3, num_classes=num_classes, base_c=64, proj_d = 128)
+    elif model_name == "UNet":
+        model = UNet(in_channels=3, num_classes=num_classes, base_c=64)
+    elif model_name == "VGG16UNet":
+        model = VGG16UNet(num_classes=num_classes)
+    elif model_name == "MobileV3Unet":
+        model = MobileV3Unet(num_classes=num_classes)
+    else:
+        print("without this model")
     return model
 
 
@@ -63,14 +76,22 @@ def main(args):
     print(args)
 
     device = torch.device(args.device)
+    batch_size = args.batch_size
+    layer_loss = args.layer_loss
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
+
+    # special for DCNet
+    with_contrast = args.with_contrast
+    model_name = args.model_name
+    loss_name = args.loss_name
+    
 
     mean = (0.709, 0.381, 0.224)
     std = (0.127, 0.079, 0.043)
 
-    # 用来保存coco_info的文件
-    results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # # 用来保存coco_info的文件
+    # results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     data_root = args.data_path
     # check data root
@@ -105,7 +126,7 @@ def main(args):
 
     print("Creating model")
     # create model num_classes equal background + foreground classes
-    model = create_model(num_classes=num_classes)
+    model = create_model(num_classes=num_classes, model_name=model_name)
     model.to(device)
 
     if args.sync_bn:
@@ -113,7 +134,7 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu],find_unused_parameters=True)
         model_without_ddp = model.module
 
     params_to_optimize = [p for p in model_without_ddp.parameters() if p.requires_grad]
@@ -153,23 +174,24 @@ def main(args):
         if args.distributed:
             train_sampler.set_epoch(epoch)
         mean_loss, lr = train_one_epoch(model, optimizer, train_data_loader, device, epoch, num_classes,
-                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
+                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler,batch_size=batch_size, 
+                                        with_contrast = with_contrast, layer_loss=layer_loss, loss_name=loss_name)
 
         confmat, dice = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
         val_info = str(confmat)
         print(val_info)
         print(f"dice coefficient: {dice:.3f}")
 
-        # 只在主进程上进行写操作
-        if args.rank in [-1, 0]:
-            # write into txt
-            with open(results_file, "a") as f:
-                # 记录每个epoch对应的train_loss、lr以及验证集各指标
-                train_info = f"[epoch: {epoch}]\n" \
-                             f"train_loss: {mean_loss:.4f}\n" \
-                             f"lr: {lr:.6f}\n" \
-                             f"dice coefficient: {dice:.3f}\n"
-                f.write(train_info + val_info + "\n\n")
+        # # 只在主进程上进行写操作
+        # if args.rank in [-1, 0]:
+        #     # write into txt
+        #     with open(results_file, "a") as f:
+        #         # 记录每个epoch对应的train_loss、lr以及验证集各指标
+        #         train_info = f"[epoch: {epoch}]\n" \
+        #                      f"train_loss: {mean_loss:.4f}\n" \
+        #                      f"lr: {lr:.6f}\n" \
+        #                      f"dice coefficient: {dice:.3f}\n"
+        #         f.write(train_info + val_info + "\n\n")
 
         if args.save_best is True:
             if best_dice < dice:
@@ -204,6 +226,8 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(
         description=__doc__)
+
+    env = os.environ
 
     # 训练文件的根目录(DRIVE)
     parser.add_argument('--data-path', default='../../../input/drive', help='dataset')
@@ -255,8 +279,18 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=bool,
+    parser.add_argument("--amp", action='store_true',
                         help="Use torch.cuda.amp for mixed precision training")
+    
+    # 双对比损失设置
+    parser.add_argument("--layer_loss", nargs=4, default=[0.1, 0.1, 0.05, 0.01], type=float,
+                        help="loss for layers")
+    parser.add_argument("--with_contrast", default=20, type=int,
+                        help="when start epoch")
+    parser.add_argument("--model_name", default="DCNet", type=str,
+                        help="the name of model")
+    parser.add_argument("--loss_name", default="double", type=str,
+                        help="the name of double")
 
     args = parser.parse_args()
 

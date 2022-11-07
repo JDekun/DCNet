@@ -2,9 +2,14 @@ import torch
 from torch import nn
 import train_utils.distributed_utils as utils
 from .dice_coefficient_loss import dice_loss, build_target
+import torch.nn.functional as F 
+from train_utils.intra_contrastive_loss import  IntraPixelContrastLoss
+from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
+from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 
 
-def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100, temperature: float = 0.5, batch_size: int = 4):
+def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100, batch_size: int = 4, layer_loss = None, 
+                    loss_name: str = "double"):
     losses = {}
     for name, x in inputs.items():
         # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
@@ -14,31 +19,41 @@ def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool
                 dice_target = build_target(target, num_classes, ignore_index)
                 loss += dice_loss(x, dice_target, multiclass=True, ignore_index=ignore_index)
             losses[name] = loss
-        # else:
-            # en = x[0].permute(0,2,3,1)
-            # de = x[0].permute(0,2,3,1)
-            # out_1 = en.contiguous().view([-1, en.shape[3]])
-            # out_2 = de.contiguous().view([-1, de.shape[3]])
-            # # [2*B*H*W, D]
-            # out = torch.cat([out_1, out_2], dim=0)
-            # # [2*B*H*W, 2*B*H*W]
-            # sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
-            # mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
-            # # [2*B*H*W, 2*B*H*W-1]
-            # sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
+        else:
+            proj_x = x[0]
+            proj_y = x[1]
+            pred_y = x[2]
+            _, predict = torch.max(pred_y, 1)
+            
+            # 每层的语义分割像素交叉熵损失
+            h, w = target.size(1), target.size(2)
+            pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=True)
+            loss = nn.functional.cross_entropy(pred, target, ignore_index=ignore_index, weight=loss_weight)
+            if dice is True:
+                dice_target = build_target(target, num_classes, ignore_index)
+                loss += dice_loss(pred, dice_target, multiclass=True, ignore_index=ignore_index)
 
-            # # compute loss
-            # pos_sim = torch.exp(torch.sum(out_1 * out_2, dim=-1) / temperature)
-            # # [2*B]
-            # pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-            # loss = (- torch.log(pos_sim / sim_matrix.sum(dim=-1))).mean()
-            # losses[name] = loss
+            # 层内对比损失
+            if loss_name == "intra":
+                loss_contrast = IntraPixelContrastLoss(proj_x, target, predict)
+            elif loss_name == "inter":
+                loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
+            elif loss_name == "double":
+                loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
+            else:
+                print("the name of loss is None !!!")
+
+            losses[name] = loss_contrast + loss * 0.1
+            # losses[name] = loss_contrast
+
+            
 
 
     if len(losses) == 1:
         return losses['out']
 
-    return losses['out'] + 0.5 * losses['L1']
+    return losses['out'] + layer_loss[0] * losses['L1'] +  layer_loss[1] * losses['L2'] + layer_loss[2] * losses['L3'] + layer_loss[3] * losses['L4']
+
 
 
 def evaluate(model, data_loader, device, num_classes):
@@ -63,7 +78,8 @@ def evaluate(model, data_loader, device, num_classes):
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
-                    lr_scheduler, print_freq=10, scaler=None, batch_size=1 ):
+                    lr_scheduler, print_freq=10, scaler=None, batch_size=1, 
+                    with_contrast = 40, layer_loss=None, loss_name = "double"):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -78,8 +94,9 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
-            output = model(image)
-            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, temperature=0.5, batch_size = batch_size)
+            output = model(image, epoch, with_contrast)
+            loss = criterion(output, target, loss_weight, num_classes=num_classes, ignore_index=255, batch_size = batch_size, 
+                            layer_loss = layer_loss, loss_name=loss_name)
 
         optimizer.zero_grad()
         if scaler is not None:

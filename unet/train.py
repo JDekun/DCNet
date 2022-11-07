@@ -9,7 +9,8 @@ from train_utils import train_one_epoch, evaluate, create_lr_scheduler
 from my_dataset import DriveDataset
 import transforms as T
 
-os.environ["CUDA_VISIBLE_DEVICES"] = "5"
+# import debugpy; debugpy.connect(('10.59.139.1', 5678))
+# os.environ["CUDA_VISIBLE_DEVICES"] = "5"
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, vflip_prob=0.5,
@@ -55,13 +56,14 @@ def get_transform(train, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
 
 
 def create_model(num_classes):
-    model = UNet(in_channels=3, num_classes=num_classes, base_c=32)
+    model = UNet(in_channels=3, num_classes=num_classes,  base_c=64, proj_d = 128)
     return model
 
 
 def main(args):
     device = torch.device(args.device if torch.cuda.is_available() else "cpu")
     batch_size = args.batch_size
+    l1 = args.l1
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
@@ -70,7 +72,7 @@ def main(args):
     std = (0.127, 0.079, 0.043)
 
     # 用来保存训练以及验证过程中信息
-    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    results_file = "./output/results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
 
     train_dataset = DriveDataset(args.data_path,
                                  train=True,
@@ -122,7 +124,7 @@ def main(args):
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
         mean_loss, lr = train_one_epoch(model, optimizer, train_loader, device, epoch, num_classes,
-                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler ,batch_size=batch_size)
+                                        lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler ,batch_size=batch_size, L1=l1)
 
         confmat, dice = evaluate(model, val_loader, device=device, num_classes=num_classes)
         val_info = str(confmat)
@@ -187,6 +189,8 @@ def parse_args():
     # Mixed precision training parameters
     parser.add_argument("--amp", default=False, type=bool,
                         help="Use torch.cuda.amp for mixed precision training")
+    parser.add_argument("--l1", default=0.1, type=float,
+                        help="L1")
 
     args = parser.parse_args()
 

@@ -48,7 +48,7 @@ class Up(nn.Module):
 
         x = torch.cat([x2, x1], dim=1)
         x = self.conv(x)
-        return x, x1
+        return x
 
 
 class OutConv(nn.Sequential):
@@ -81,21 +81,16 @@ class UNet(nn.Module):
         self.up4 = Up(base_c * 2, base_c, bilinear)
         self.out_conv = OutConv(base_c, num_classes)
 
-    def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
+    def forward(self, x: torch.Tensor, epoch: int = 0, with_contrast : int = -1) -> Dict[str, torch.Tensor]:
         x1 = self.in_conv(x)
-
         x2 = self.down1(x1)
         x3 = self.down2(x2)
         x4 = self.down3(x3)
-
         x5 = self.down4(x4)
-
-        x, y4 = self.up1(x5, x4)
-        x, y3 = self.up2(x, x3)
-        x, y2 = self.up3(x, x2)
-        
-        x, _ = self.up4(x, x1)
-
+        x = self.up1(x5, x4)
+        x = self.up2(x, x3)
+        x = self.up3(x, x2)
+        x = self.up4(x, x1)
         logits = self.out_conv(x)
 
-        return {"out": logits, "L4": [x4, y4], "L3": [x3, y3], "L2": [x2, y2]}
+        return {"out": logits}
