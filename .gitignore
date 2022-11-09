@@ -12,6 +12,7 @@ unet/__pycache__
 unet/src/__pycache__
 unet/train_utils/__pycache__
 unet/output-before
+unet/wandb
 
 *.swo
 *.swp

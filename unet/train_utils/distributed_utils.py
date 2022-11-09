@@ -122,7 +122,7 @@ class ConfusionMatrix(object):
                 acc_global.item() * 100,
                 ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
                 ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
-                iu.mean().item() * 100)
+                iu.mean().item() * 100), acc_global, iu.mean().item() * 100
 
 
 class DiceCoefficient(object):

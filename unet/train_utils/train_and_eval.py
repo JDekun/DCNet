@@ -8,8 +8,9 @@ from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 
 
+
 def criterion(inputs, target, loss_weight=None, num_classes: int = 2, dice: bool = True, ignore_index: int = -100, batch_size: int = 4, layer_loss = None, 
-                    loss_name: str = "double"):
+                    loss_name: str = "segloss"):
     losses = {}
     for name, x in inputs.items():
         # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
@@ -63,7 +64,7 @@ def evaluate(model, data_loader, device, num_classes):
     metric_logger = utils.MetricLogger(delimiter="  ")
     header = 'Test:'
     with torch.no_grad():
-        for image, target in metric_logger.log_every(data_loader, 100, header):
+        for image, target in metric_logger.log_every(data_loader, 1, header):
             image, target = image.to(device), target.to(device)
             output = model(image)
             output = output['out']
@@ -78,8 +79,8 @@ def evaluate(model, data_loader, device, num_classes):
 
 
 def train_one_epoch(model, optimizer, data_loader, device, epoch, num_classes,
-                    lr_scheduler, print_freq=10, scaler=None, batch_size=1, 
-                    with_contrast = 40, layer_loss=None, loss_name = "double"):
+                    lr_scheduler, print_freq=1, scaler=None, batch_size=1, 
+                    with_contrast = 40, layer_loss=None, loss_name = "segloss"):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
