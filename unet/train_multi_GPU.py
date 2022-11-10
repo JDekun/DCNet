@@ -335,7 +335,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", action='store_true',
+    parser.add_argument("--amp", default=True, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
     
     # 双对比损失设置
@@ -345,7 +345,7 @@ if __name__ == "__main__":
                         help="when start epoch")
     parser.add_argument("--model_name", default="DC_UNet", type=str,
                         help="UNet DC_UNet DCNet VGG16UNet MobileV3Unet")
-    parser.add_argument("--loss_name", default="segloss", type=str,
+    parser.add_argument("--loss_name", default="intra", type=str,
                         help="segloss intra inter double")
     parser.add_argument("--seed", default=1, type=int,
                         help="random seed")
