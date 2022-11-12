@@ -75,16 +75,6 @@ def create_model(num_classes,model_name):
         print("without this model")
     return model
 
-def set_seed(seed):
-    random.seed(seed)
-    np.random.seed(seed)
-    torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed(seed)
-        torch.cuda.manual_seed_all(seed)
-        torch.backends.cudnn.deterministic = True
-        torch.backends.cudnn.benchmark = False
-    os.environ["PYTHONHASHSEED"] = str(seed) 
 
 def main(args):
     init_distributed_mode(args)
@@ -253,13 +243,21 @@ def main(args):
             else:
                 save_on_master(save_file,
                                os.path.join(args.output_dir, 'model_{}_{}_{}.pth'.format(epoch, model_name, loss_name)))
-
+        
+    # 只在主节点上保存
     if is_main_process():
             batch_size = 1
             input_shape = (3, 480, 480)
             x = torch.randn(batch_size,*input_shape).cuda()
-            torch.onnx.export(model.module, x, "./multi_train/{}_{}.onnx".format(model_name, loss_name))
-            wandb.save("./multi_train/{}_{}.onnx".format(model_name, loss_name))
+            torch.onnx.export(model.module, x, "./{}/best_model_{}_{}.onnx".format(args.output_dir, model_name, loss_name))
+            wandb.save("./{}/best_model_{}_{}.onnx".format(args.output_dir, model_name, loss_name))
+
+            if args.save_best is True:
+                wandb.save(os.path.join(args.output_dir, 'best_model_{}_{}.pth'.format(model_name, loss_name)))
+            else:
+                wandb.save(os.path.join(args.output_dir, 'model_{}_{}_{}.pth'.format(epoch, model_name, loss_name)))
+
+            
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -276,6 +274,17 @@ def str2bool(v):
         return False
     else:
         raise argparse.ArgumentTypeError("Unsupported value encountered.")
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed) 
 
 if __name__ == "__main__":
     import argparse
@@ -347,7 +356,7 @@ if __name__ == "__main__":
                         help="UNet DC_UNet DCNet VGG16UNet MobileV3Unet")
     parser.add_argument("--loss_name", default="intra", type=str,
                         help="segloss intra inter double")
-    parser.add_argument("--seed", default=1, type=int,
+    parser.add_argument("--seed", default=200, type=int,
                         help="random seed")
     
     # wandb设置
