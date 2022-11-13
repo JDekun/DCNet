@@ -8,8 +8,11 @@ from src import fcn_resnet50
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import VOCSegmentation
 import transforms as T
+import numpy as np
+import random
 
 import wandb
+from train_utils.distributed_utils import is_main_process
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -69,10 +72,6 @@ def create_model(aux, num_classes):
 
 
 def main(args):
-    ###### wandb ######
-    wandb.init(project="fcn")
-    wandb.config.update(args)
-    
     init_distributed_mode(args)
     print(args)
 
@@ -81,8 +80,15 @@ def main(args):
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
-    # 用来保存coco_info的文件
-    results_file = "results{}.txt".format(datetime.datetime.now().strftime("%Y%m%d-%H%M%S"))
+    # 用来保存运行结果的文件，只在主进程上进行写操作
+    results_log = args.result_save + ".log"
+    results_csv = args.result_save + ".csv"
+    if args.rank in [-1, 0]:
+        # write into csv
+        with open(results_csv, "a") as f:
+            # 记录每个epoch对应的train_loss、lr以及验证集各指标
+            train_info = f"epoch,mean_loss,mIOU,acc_global,lr\n" 
+            f.write(train_info)
 
     VOC_root = args.data_path
     # check voc root
@@ -168,6 +174,14 @@ def main(args):
         print(val_info)
         return
 
+    ##### wandb #####
+    if args.wandb and (args.rank in [-1, 0]):
+        os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
+        os.environ['WANDB_MODE'] = args.wandb_model
+        wandb.init(project="fcn")
+        wandb.config.update(args)
+        wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
+
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -175,24 +189,33 @@ def main(args):
             train_sampler.set_epoch(epoch)
         mean_loss, lr = train_one_epoch(model, optimizer, train_data_loader, device, epoch,
                                         lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
-        wandb.log({"mean_loss":mean_loss, "lr": lr})
 
         confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
-
-        val_info = str(confmat)
+        acc_global, acc, iu = confmat.compute()
+        val_info = (
+            'global correct: {:.1f}\n'
+            'average row correct: {}\n'
+            'IoU: {}\n'
+            'mean IoU: {:.1f}').format(
+                acc_global.item() * 100,
+                ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
+                ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
+                iu.mean().item() * 100)
+        # val_info = str(confmat) # 修改展开了
         print(val_info)
 
-        
+        ##### wandb #####
+        if args.wandb and (args.rank in [-1, 0]):
+            wandb.log({"mean_loss": mean_loss, "mIOU": iu.mean().item() * 100, "acc_global": acc_global, "lr": lr})
 
-        # # 只在主进程上进行写操作
-        # if args.rank in [-1, 0]:
-        #     # write into txt
-        #     with open(results_file, "a") as f:
-        #         # 记录每个epoch对应的train_loss、lr以及验证集各指标
-        #         train_info = f"[epoch: {epoch}]\n" \
-        #                      f"train_loss: {mean_loss:.4f}\n" \
-        #                      f"lr: {lr:.6f}\n"
-        #         f.write(train_info + val_info + "\n\n")
+
+        # 只在主进程上进行写操作
+        if args.rank in [-1, 0]:
+            # write into txt
+            with open(results_csv, "a") as f:
+                # 记录每个epoch对应的train_loss、lr以及验证集各指标
+                train_info = f"{epoch},{mean_loss},{iu.mean().item() * 100},{acc_global},{lr}\n" 
+                f.write(train_info)
 
         if args.output_dir:
             # 只在主节点上执行保存权重操作
@@ -205,10 +228,47 @@ def main(args):
                 save_file["scaler"] = scaler.state_dict()
             save_on_master(save_file,
                            os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+            if is_main_process() and args.wandb:
+                wandb.save(os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
+
+    # 只在主节点上保存
+    if is_main_process() and args.wandb:
+            batch_size = 1
+            input_shape = (3, 480, 480)
+            x = torch.randn(batch_size,*input_shape).cuda()
+            torch.onnx.export(model.module, x, "./{}/model_{}.onnx".format(args.output_dir, epoch))
+            wandb.save("./{}/model_{}.onnx".format(args.output_dir, epoch))
+
+            wandb.save(results_csv)
+            wandb.save(results_log)
+
+
+def str2bool(v):
+    """Usage:
+    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True,
+                        dest='pretrained', help='Whether to use pretrained models.')
+    """
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Unsupported value encountered.")
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed) 
 
 
 if __name__ == "__main__":
@@ -224,9 +284,9 @@ if __name__ == "__main__":
     # 检测目标类别数(不包含背景)
     parser.add_argument('--num-classes', default=20, type=int, help='num_classes')
     # 每块GPU上的batch_size
-    parser.add_argument('-b', '--batch-size', default=16, type=int,
+    parser.add_argument('--batch_size', default=16, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
-    parser.add_argument('--batch-size-val', default=8, type=int,
+    parser.add_argument('--batch_size_val', default=8, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument("--aux", default=True, type=bool, help="auxilier loss")
     # 指定接着从哪个epoch数开始训练
@@ -252,7 +312,7 @@ if __name__ == "__main__":
     # 训练过程打印信息的频率
     parser.add_argument('--print-freq', default=5, type=int, help='print frequency')
     # 文件保存地址
-    parser.add_argument('--output-dir', default='./multi_train', help='path where to save')
+    parser.add_argument('--output_dir', default='./multi_train', help='path where to save')
     # 基于上次的训练结果接着训练
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     # 不训练，仅测试
@@ -270,18 +330,22 @@ if __name__ == "__main__":
     # Mixed precision training parameters
     parser.add_argument("--amp", default=False, type=bool,
                         help="Use torch.cuda.amp for mixed precision training")
+    parser.add_argument("--seed", default=304, type=int,
+                        help="random seed")
+
+    parser.add_argument("--result_save", default='./experiment/result', type=str,
+                        help="save file for result")
 
     # wandb设置
-    parser.add_argument('--wandb', default='run', type=str, help='run or dryrun')
+    parser.add_argument('--wandb', default=False, type=str2bool, help='w/o wandb')
+    parser.add_argument('--wandb_model', default='dryrun', type=str, help='run or dryrun')
 
     args = parser.parse_args()
+
+    set_seed(args.seed)
 
     # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
     if args.output_dir:
         mkdir(args.output_dir)
-    
-    # wandb
-    os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
-    os.environ['WANDB_MODE'] = args.wandb
 
     main(args)
