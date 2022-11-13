@@ -17,3 +17,5 @@ unet/wandb
 *.swo
 *.swp
 *.pyc
+
+fcn/src/__pycache__/__init__.cpython-39.pyc
