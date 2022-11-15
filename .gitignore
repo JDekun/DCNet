@@ -4,8 +4,6 @@ fcn/fcn_resnet50_coco.pth
 fcn/wandb
 fcn/pre_trained
 
-fcn_main/
-
 unet/multi_train
 unet/save_weights
 unet/__pycache__

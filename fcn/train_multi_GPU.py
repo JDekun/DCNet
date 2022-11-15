@@ -4,12 +4,16 @@ import datetime
 
 import torch
 
-from src import fcn_resnet50
+from src import fcn_resnet50, dcnet_resnet50
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import VOCSegmentation
 import transforms as T
 import numpy as np
 import random
+
+# 远程调试
+# import debugpy; debugpy.connect(('10.59.139.1', 5678))
+
 
 import wandb
 from train_utils.distributed_utils import is_main_process
@@ -52,8 +56,18 @@ def get_transform(train):
     return SegmentationPresetTrain(base_size, crop_size) if train else SegmentationPresetEval(base_size)
 
 
-def create_model(aux, num_classes):
-    model = fcn_resnet50(aux=aux, num_classes=num_classes)
+def create_model(args):
+    num_classes = args.num_classes + 1
+    aux = aux=args.aux
+    model_name = args.model_name
+
+    if model_name == "fcn_resnet50":
+        model = fcn_resnet50(aux=aux, num_classes=num_classes)
+    elif model_name == "dcnet_resnet50":
+        model = dcnet_resnet50(args, aux=aux, num_classes=num_classes)
+    else:
+        raise ValueError("model_name are not present in model")
+
     weights_dict = torch.load("./pre_trained/fcn_resnet50_coco.pth", map_location='cpu')
 
     if num_classes != 21:
@@ -63,10 +77,10 @@ def create_model(aux, num_classes):
             if "classifier.4" in k:
                 del weights_dict[k]
 
-    missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-    if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-        print("missing_keys: ", missing_keys)
-        print("unexpected_keys: ", unexpected_keys)
+    # missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+    # if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+    #     print("missing_keys: ", missing_keys)
+    #     print("unexpected_keys: ", unexpected_keys)
 
     return model
 
@@ -128,7 +142,7 @@ def main(args):
 
     print("Creating model")
     # create model num_classes equal background + 20 classes
-    model = create_model(aux=args.aux, num_classes=num_classes)
+    model = create_model(args)
     model.to(device)
 
     if args.sync_bn:
@@ -187,7 +201,7 @@ def main(args):
     for epoch in range(args.start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        mean_loss, lr = train_one_epoch(model, optimizer, train_data_loader, device, epoch,
+        mean_loss, lr = train_one_epoch(args, model, optimizer, train_data_loader, device, epoch,
                                         lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
 
         confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
@@ -282,20 +296,20 @@ if __name__ == "__main__":
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
-    parser.add_argument('--num-classes', default=20, type=int, help='num_classes')
+    parser.add_argument('--num_classes', default=20, type=int, help='num_classes')
     # 每块GPU上的batch_size
     parser.add_argument('--batch_size', default=16, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument('--batch_size_val', default=8, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
-    parser.add_argument("--aux", default=True, type=bool, help="auxilier loss")
+    parser.add_argument("--aux", default=True, type=str2bool, help="auxilier loss")
     # 指定接着从哪个epoch数开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     # 训练的总epoch数
     parser.add_argument('--epochs', default=20, type=int, metavar='N',
                         help='number of total epochs to run')
     # 是否使用同步BN(在多个GPU之间同步)，默认不开启，开启后训练速度会变慢
-    parser.add_argument('--sync_bn', type=bool, default=False, help='whether using SyncBatchNorm')
+    parser.add_argument('--sync_bn', type=str2bool, default=False, help='whether using SyncBatchNorm')
     # 数据加载以及预处理的线程数
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
@@ -328,7 +342,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=bool,
+    parser.add_argument("--amp", default=False, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
     parser.add_argument("--seed", default=304, type=int,
                         help="random seed")
@@ -339,6 +353,13 @@ if __name__ == "__main__":
     # wandb设置
     parser.add_argument('--wandb', default=False, type=str2bool, help='w/o wandb')
     parser.add_argument('--wandb_model', default='dryrun', type=str, help='run or dryrun')
+
+    # DCNet专属设计
+    parser.add_argument('--model_name', default='fcn_resnet50', type=str, help='fcn_resnet50 dcnet_resnet50')
+    parser.add_argument("--project_dim", default=128, type=int,
+                        help="the dim of projector")
+    parser.add_argument("--loss_name", default="intra", type=str,
+                        help="segloss intra inter double")
 
     args = parser.parse_args()
 

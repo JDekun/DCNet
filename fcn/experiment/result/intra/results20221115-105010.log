@@ -1,0 +1,232 @@
+WARNING:torch.distributed.run:
+*****************************************
+Setting OMP_NUM_THREADS environment variable for each process to be 1 in default, to avoid your system being overloaded, please further tune the variable for optimal performance in your application as needed. 
+*****************************************
+| distributed init (rank 0): env://
+| distributed init (rank 1): env://
+Namespace(data_path='../../../input/pascal', device='cuda', num_classes=20, batch_size=14, batch_size_val=8, aux=True, start_epoch=0, epochs=20, sync_bn=False, workers=4, lr=0.0001, momentum=0.9, weight_decay=0.0001, print_freq=5, output_dir='./multi_train', resume='', test_only=False, world_size=2, dist_url='env://', amp=True, seed=304, result_save='./experiment/result/intra/results20221115-105010', wandb=True, wandb_model='run', model_name='dcnet_resnet50', project_dim=128, loss_name='intra', rank=0, gpu=0, distributed=True, dist_backend='nccl')
+Creating data loaders
+Creating model
+wandb: Currently logged in as: dekun. Use `wandb login --relogin` to force relogin
+wandb: wandb version 0.13.5 is available!  To upgrade, please run:
+wandb:  $ pip install wandb --upgrade
+wandb: Tracking run with wandb version 0.13.4
+wandb: Run data is saved locally in /home/zk/GIT/working/DCNet/fcn/wandb/run-20221115_105023-2zo61kfi
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run copper-firefly-43
+wandb: ⭐️ View project at https://wandb.ai/dekun/fcn
+wandb: 🚀 View run at https://wandb.ai/dekun/fcn/runs/2zo61kfi
+Start training
+Epoch: [0]  [ 0/52]  eta: 0:07:09  lr: 0.000002  loss: 4.9961 (4.9961)  time: 8.2675  data: 0.8001  max mem: 8300
+Epoch: [0]  [ 5/52]  eta: 0:04:05  lr: 0.000012  loss: 5.0346 (4.9856)  time: 5.2166  data: 0.1481  max mem: 8709
+Epoch: [0]  [10/52]  eta: 0:03:36  lr: 0.000021  loss: 5.0013 (4.9849)  time: 5.1492  data: 0.0888  max mem: 8709
+Epoch: [0]  [15/52]  eta: 0:03:05  lr: 0.000031  loss: 4.9361 (4.9697)  time: 5.0023  data: 0.0673  max mem: 8709
+Epoch: [0]  [20/52]  eta: 0:02:40  lr: 0.000040  loss: 4.8933 (4.9575)  time: 4.8562  data: 0.0182  max mem: 8709
+Epoch: [0]  [25/52]  eta: 0:02:13  lr: 0.000050  loss: 4.8874 (4.9406)  time: 4.8778  data: 0.0172  max mem: 8709
+Epoch: [0]  [30/52]  eta: 0:01:49  lr: 0.000060  loss: 4.8691 (4.9255)  time: 4.8692  data: 0.0169  max mem: 8709
+Epoch: [0]  [35/52]  eta: 0:01:23  lr: 0.000069  loss: 4.7162 (4.9074)  time: 4.8690  data: 0.0160  max mem: 8709
+Epoch: [0]  [40/52]  eta: 0:00:59  lr: 0.000079  loss: 4.7440 (4.8837)  time: 4.8999  data: 0.0154  max mem: 8709
+Epoch: [0]  [45/52]  eta: 0:00:34  lr: 0.000088  loss: 4.5676 (4.8539)  time: 4.9158  data: 0.0158  max mem: 8709
+Epoch: [0]  [50/52]  eta: 0:00:09  lr: 0.000098  loss: 4.5100 (4.8280)  time: 4.9518  data: 0.0157  max mem: 8709
+Epoch: [0] Total time: 0:04:17
+Test:  [ 0/91]  eta: 0:04:38    time: 3.0654  data: 0.9286  max mem: 8709
+Test:  [10/91]  eta: 0:01:49    time: 1.3531  data: 0.1050  max mem: 8709
+Test:  [20/91]  eta: 0:01:35    time: 1.2619  data: 0.0229  max mem: 8709
+Test:  [30/91]  eta: 0:01:21    time: 1.3344  data: 0.0228  max mem: 8709
+Test:  [40/91]  eta: 0:01:07    time: 1.3178  data: 0.0247  max mem: 8709
+Test:  [50/91]  eta: 0:00:54    time: 1.2842  data: 0.0255  max mem: 8709
+Test:  [60/91]  eta: 0:00:40    time: 1.2643  data: 0.0242  max mem: 8709
+Test:  [70/91]  eta: 0:00:31    time: 2.0406  data: 0.0259  max mem: 8709
+Test:  [80/91]  eta: 0:00:19    time: 3.2025  data: 0.0248  max mem: 8709
+Test:  [90/91]  eta: 0:00:01    time: 3.5538  data: 0.0214  max mem: 8709
+Test: Total time: 0:02:59
+global correct: 24.6
+average row correct: ['32.2', '15.4', '2.7', '1.2', '7.3', '1.9', '6.6', '2.3', '3.1', '0.0', '0.0', '1.1', '2.2', '8.2', '25.1', '0.6', '0.1', '0.0', '0.2', '9.7', '0.1']
+IoU: ['29.5', '0.9', '0.3', '0.5', '0.4', '0.8', '2.5', '1.4', '1.4', '0.0', '0.0', '0.6', '1.1', '1.0', '1.5', '0.5', '0.1', '0.0', '0.2', '2.6', '0.1']
+mean IoU: 2.2
+Epoch: [1]  [ 0/52]  eta: 0:04:41  lr: 0.000100  loss: 4.4483 (4.4483)  time: 5.4198  data: 0.9542  max mem: 8709
+Epoch: [1]  [ 5/52]  eta: 0:03:47  lr: 0.000099  loss: 4.2690 (4.3553)  time: 4.8509  data: 0.1707  max mem: 8709
+Epoch: [1]  [10/52]  eta: 0:03:28  lr: 0.000099  loss: 4.3912 (4.3651)  time: 4.9587  data: 0.1002  max mem: 8709
+Epoch: [1]  [15/52]  eta: 0:03:01  lr: 0.000099  loss: 4.2875 (4.3437)  time: 4.8972  data: 0.0748  max mem: 8709
+Epoch: [1]  [20/52]  eta: 0:02:38  lr: 0.000098  loss: 4.2442 (4.3155)  time: 4.9147  data: 0.0165  max mem: 8709
+Epoch: [1]  [25/52]  eta: 0:02:12  lr: 0.000098  loss: 4.0711 (4.2787)  time: 4.9134  data: 0.0178  max mem: 8709
+Epoch: [1]  [30/52]  eta: 0:01:48  lr: 0.000097  loss: 4.0359 (4.2520)  time: 4.9465  data: 0.0185  max mem: 8709
+Epoch: [1]  [35/52]  eta: 0:01:23  lr: 0.000097  loss: 3.9792 (4.2207)  time: 4.9304  data: 0.0179  max mem: 8709
+Epoch: [1]  [40/52]  eta: 0:00:59  lr: 0.000096  loss: 3.9004 (4.1816)  time: 4.9563  data: 0.0186  max mem: 8709
+Epoch: [1]  [45/52]  eta: 0:00:34  lr: 0.000096  loss: 3.8573 (4.1619)  time: 4.9598  data: 0.0182  max mem: 8709
+Epoch: [1]  [50/52]  eta: 0:00:09  lr: 0.000095  loss: 3.6181 (4.1221)  time: 4.9408  data: 0.0189  max mem: 8709
+Epoch: [1] Total time: 0:04:17
+Test:  [ 0/91]  eta: 0:03:35    time: 2.3663  data: 0.9227  max mem: 8709
+Test:  [10/91]  eta: 0:14:30    time: 10.7496  data: 0.1050  max mem: 8709
+Test:  [20/91]  eta: 0:13:20    time: 11.7266  data: 0.0233  max mem: 8709
+Test:  [30/91]  eta: 0:11:52    time: 12.1981  data: 0.0244  max mem: 8709
+Test:  [40/91]  eta: 0:09:58    time: 12.2058  data: 0.0251  max mem: 8709
+Test:  [50/91]  eta: 0:07:51    time: 11.1951  data: 0.0238  max mem: 8709
+Test:  [60/91]  eta: 0:05:56    time: 11.0347  data: 0.0225  max mem: 8709
+Test:  [70/91]  eta: 0:04:01    time: 11.5826  data: 0.0246  max mem: 8709
+Test:  [80/91]  eta: 0:02:06    time: 11.6059  data: 0.0245  max mem: 8709
+Test:  [90/91]  eta: 0:00:11    time: 11.6138  data: 0.0223  max mem: 8709
+Test: Total time: 0:17:30
+global correct: 65.9
+average row correct: ['89.2', '2.4', '0.3', '0.3', '0.5', '0.4', '10.3', '3.0', '0.0', '0.0', '0.0', '0.2', '0.0', '0.2', '12.0', '2.2', '0.0', '0.0', '0.0', '2.2', '0.1']
+IoU: ['69.0', '1.1', '0.2', '0.2', '0.3', '0.3', '3.2', '1.8', '0.0', '0.0', '0.0', '0.2', '0.0', '0.2', '3.4', '1.7', '0.0', '0.0', '0.0', '1.5', '0.1']
+mean IoU: 4.0
+Epoch: [2]  [ 0/52]  eta: 0:04:45  lr: 0.000095  loss: 3.7224 (3.7224)  time: 5.4996  data: 0.9405  max mem: 8709
+Epoch: [2]  [ 5/52]  eta: 0:04:03  lr: 0.000095  loss: 3.4996 (3.6096)  time: 5.1740  data: 0.1739  max mem: 8709
+Epoch: [2]  [10/52]  eta: 0:03:29  lr: 0.000094  loss: 3.9981 (3.6425)  time: 4.9832  data: 0.1005  max mem: 8709
+Epoch: [2]  [15/52]  eta: 0:03:06  lr: 0.000094  loss: 3.5218 (3.6486)  time: 5.0428  data: 0.0743  max mem: 8709
+Epoch: [2]  [20/52]  eta: 0:02:39  lr: 0.000093  loss: 3.5786 (3.6376)  time: 4.9451  data: 0.0160  max mem: 8709
+Epoch: [2]  [25/52]  eta: 0:02:14  lr: 0.000093  loss: 3.7093 (3.6275)  time: 4.9457  data: 0.0151  max mem: 8709
+Epoch: [2]  [30/52]  eta: 0:01:48  lr: 0.000092  loss: 3.4247 (3.6065)  time: 4.9322  data: 0.0177  max mem: 8709
+Epoch: [2]  [35/52]  eta: 0:01:24  lr: 0.000092  loss: 3.5310 (3.5960)  time: 4.9455  data: 0.0182  max mem: 8709
+Epoch: [2]  [40/52]  eta: 0:00:59  lr: 0.000091  loss: 3.3766 (3.5791)  time: 4.9264  data: 0.0187  max mem: 8709
+Epoch: [2]  [45/52]  eta: 0:00:34  lr: 0.000091  loss: 3.4795 (3.5547)  time: 4.9256  data: 0.0192  max mem: 8709
+Epoch: [2]  [50/52]  eta: 0:00:09  lr: 0.000091  loss: 3.6299 (3.5341)  time: 4.9361  data: 0.0179  max mem: 8709
+Epoch: [2] Total time: 0:04:17
+Test:  [ 0/91]  eta: 0:03:39    time: 2.4160  data: 0.9024  max mem: 8709
+Test:  [10/91]  eta: 0:16:03    time: 11.8892  data: 0.1023  max mem: 8709
+Test:  [20/91]  eta: 0:14:59    time: 13.1844  data: 0.0231  max mem: 8709
+Test:  [30/91]  eta: 0:13:20    time: 13.8103  data: 0.0222  max mem: 8709
+Test:  [40/91]  eta: 0:11:12    time: 13.7288  data: 0.0227  max mem: 8709
+Test:  [50/91]  eta: 0:08:51    time: 12.6923  data: 0.0244  max mem: 8709
+Test:  [60/91]  eta: 0:06:42    time: 12.5982  data: 0.0227  max mem: 8709
+Test:  [70/91]  eta: 0:04:31    time: 12.9149  data: 0.0240  max mem: 8709
+Test:  [80/91]  eta: 0:02:21    time: 12.6129  data: 0.0245  max mem: 8709
+Test:  [90/91]  eta: 0:00:12    time: 12.7849  data: 0.0223  max mem: 8709
+Test: Total time: 0:19:34
+global correct: 71.4
+average row correct: ['97.1', '0.4', '0.2', '0.1', '0.1', '0.2', '3.9', '1.4', '0.0', '0.0', '0.0', '0.1', '0.0', '0.0', '5.7', '0.6', '0.0', '0.0', '0.0', '0.5', '0.1']
+IoU: ['72.6', '0.3', '0.1', '0.1', '0.1', '0.2', '2.2', '1.1', '0.0', '0.0', '0.0', '0.1', '0.0', '0.0', '2.8', '0.5', '0.0', '0.0', '0.0', '0.5', '0.1']
+mean IoU: 3.8
+Epoch: [3]  [ 0/52]  eta: 0:06:24  lr: 0.000090  loss: 3.5153 (3.5153)  time: 7.3946  data: 0.9711  max mem: 8709
+Epoch: [3]  [ 5/52]  eta: 0:04:04  lr: 0.000090  loss: 3.0288 (3.3160)  time: 5.1916  data: 0.1735  max mem: 8709
+Epoch: [3]  [10/52]  eta: 0:03:34  lr: 0.000089  loss: 3.3728 (3.3418)  time: 5.1080  data: 0.1022  max mem: 8709
+Epoch: [3]  [15/52]  eta: 0:03:04  lr: 0.000089  loss: 3.3447 (3.3869)  time: 4.9999  data: 0.0754  max mem: 8709
+Epoch: [3]  [20/52]  eta: 0:02:40  lr: 0.000089  loss: 3.5320 (3.3715)  time: 4.8847  data: 0.0159  max mem: 8709
+Epoch: [3]  [25/52]  eta: 0:02:14  lr: 0.000088  loss: 2.9203 (3.3476)  time: 4.9125  data: 0.0173  max mem: 8709
+Epoch: [3]  [30/52]  eta: 0:01:49  lr: 0.000088  loss: 3.3960 (3.3384)  time: 4.9256  data: 0.0171  max mem: 8709
+Epoch: [3]  [35/52]  eta: 0:01:24  lr: 0.000087  loss: 3.1652 (3.3162)  time: 4.9447  data: 0.0176  max mem: 8709
+Epoch: [3]  [40/52]  eta: 0:00:59  lr: 0.000087  loss: 3.7636 (3.3264)  time: 4.9555  data: 0.0174  max mem: 8709
+Epoch: [3]  [45/52]  eta: 0:00:34  lr: 0.000086  loss: 3.5969 (3.3100)  time: 4.9514  data: 0.0160  max mem: 8709
+Epoch: [3]  [50/52]  eta: 0:00:09  lr: 0.000086  loss: 3.5028 (3.3135)  time: 4.9575  data: 0.0156  max mem: 8709
+Epoch: [3] Total time: 0:04:18
+Test:  [ 0/91]  eta: 0:03:33    time: 2.3513  data: 0.8826  max mem: 8709
+Test:  [10/91]  eta: 0:16:28    time: 12.2007  data: 0.0982  max mem: 8709
+Test:  [20/91]  eta: 0:15:22    time: 13.5227  data: 0.0203  max mem: 8709
+Test:  [30/91]  eta: 0:13:37    time: 14.0511  data: 0.0225  max mem: 8709
+Test:  [40/91]  eta: 0:11:24    time: 13.8806  data: 0.0249  max mem: 8709
+Test:  [50/91]  eta: 0:09:00    time: 12.8609  data: 0.0259  max mem: 8709
+Test:  [60/91]  eta: 0:06:49    time: 12.7723  data: 0.0247  max mem: 8709
+Test:  [70/91]  eta: 0:04:36    time: 13.0925  data: 0.0277  max mem: 8709
+Test:  [80/91]  eta: 0:02:24    time: 12.8360  data: 0.0282  max mem: 8709
+Test:  [90/91]  eta: 0:00:13    time: 12.9650  data: 0.0236  max mem: 8709
+Test: Total time: 0:19:53
+global correct: 72.0
+average row correct: ['98.0', '0.1', '0.0', '0.1', '0.0', '0.2', '3.4', '0.5', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '4.1', '0.6', '0.0', '0.0', '0.0', '0.6', '0.0']
+IoU: ['72.8', '0.1', '0.0', '0.1', '0.0', '0.2', '2.1', '0.5', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '2.2', '0.5', '0.0', '0.0', '0.0', '0.5', '0.0']
+mean IoU: 3.8
+Epoch: [4]  [ 0/52]  eta: 0:04:40  lr: 0.000086  loss: 3.2388 (3.2388)  time: 5.4024  data: 0.8337  max mem: 8709
+Epoch: [4]  [ 5/52]  eta: 0:03:48  lr: 0.000085  loss: 2.9959 (3.1201)  time: 4.8682  data: 0.1507  max mem: 8709
+Epoch: [4]  [10/52]  eta: 0:03:27  lr: 0.000085  loss: 3.1611 (3.0887)  time: 4.9369  data: 0.0906  max mem: 8709
+Epoch: [4]  [15/52]  eta: 0:03:00  lr: 0.000084  loss: 3.1355 (3.1465)  time: 4.8882  data: 0.0679  max mem: 8709
+Epoch: [4]  [20/52]  eta: 0:02:37  lr: 0.000084  loss: 2.9479 (3.1409)  time: 4.9074  data: 0.0166  max mem: 8709
+Epoch: [4]  [25/52]  eta: 0:02:12  lr: 0.000083  loss: 3.4226 (3.1711)  time: 4.9018  data: 0.0175  max mem: 8709
+Epoch: [4]  [30/52]  eta: 0:01:48  lr: 0.000083  loss: 3.2269 (3.1807)  time: 4.8945  data: 0.0179  max mem: 8709
+Epoch: [4]  [35/52]  eta: 0:01:23  lr: 0.000082  loss: 3.1964 (3.1833)  time: 4.9143  data: 0.0173  max mem: 8709
+Epoch: [4]  [40/52]  eta: 0:00:58  lr: 0.000082  loss: 3.7787 (3.1926)  time: 4.8890  data: 0.0174  max mem: 8709
+Epoch: [4]  [45/52]  eta: 0:00:34  lr: 0.000081  loss: 2.8914 (3.1630)  time: 4.9241  data: 0.0161  max mem: 8709
+Epoch: [4]  [50/52]  eta: 0:00:09  lr: 0.000081  loss: 3.0618 (3.1632)  time: 4.9288  data: 0.0146  max mem: 8709
+Epoch: [4] Total time: 0:04:16
+Test:  [ 0/91]  eta: 0:03:27    time: 2.2838  data: 0.8389  max mem: 8709
+Test:  [10/91]  eta: 0:16:40    time: 12.3500  data: 0.0952  max mem: 8709
+Test:  [20/91]  eta: 0:15:39    time: 13.7827  data: 0.0218  max mem: 8709
+Test:  [30/91]  eta: 0:13:50    time: 14.3140  data: 0.0231  max mem: 8709
+Test:  [40/91]  eta: 0:11:34    time: 14.0260  data: 0.0232  max mem: 8709
+Test:  [50/91]  eta: 0:09:07    time: 12.9520  data: 0.0223  max mem: 8709
+Test:  [60/91]  eta: 0:06:55    time: 12.9380  data: 0.0191  max mem: 8709
+Test:  [70/91]  eta: 0:04:40    time: 13.3024  data: 0.0188  max mem: 8709
+Test:  [80/91]  eta: 0:02:26    time: 12.9561  data: 0.0197  max mem: 8709
+Test:  [90/91]  eta: 0:00:13    time: 13.0982  data: 0.0175  max mem: 8709
+Test: Total time: 0:20:09
+global correct: 72.6
+average row correct: ['99.0', '0.0', '0.0', '0.0', '0.0', '0.4', '2.2', '0.1', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '2.3', '0.2', '0.0', '0.0', '0.0', '0.3', '0.0']
+IoU: ['73.1', '0.0', '0.0', '0.0', '0.0', '0.3', '1.6', '0.1', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '1.6', '0.2', '0.0', '0.0', '0.0', '0.3', '0.0']
+mean IoU: 3.7
+Epoch: [5]  [ 0/52]  eta: 0:04:42  lr: 0.000081  loss: 3.0150 (3.0150)  time: 5.4250  data: 0.7385  max mem: 8709
+Epoch: [5]  [ 5/52]  eta: 0:03:55  lr: 0.000080  loss: 3.0391 (3.0945)  time: 5.0070  data: 0.1348  max mem: 8709
+Epoch: [5]  [10/52]  eta: 0:03:27  lr: 0.000080  loss: 3.1599 (3.0237)  time: 4.9292  data: 0.0789  max mem: 8709
+Epoch: [5]  [15/52]  eta: 0:03:02  lr: 0.000079  loss: 2.9187 (3.0929)  time: 4.9271  data: 0.0591  max mem: 8709
+Epoch: [5]  [20/52]  eta: 0:02:36  lr: 0.000079  loss: 3.1747 (3.1038)  time: 4.8641  data: 0.0134  max mem: 8709
+Epoch: [5]  [25/52]  eta: 0:02:12  lr: 0.000078  loss: 2.8754 (3.1220)  time: 4.8759  data: 0.0130  max mem: 8709
+Epoch: [5]  [30/52]  eta: 0:01:47  lr: 0.000078  loss: 2.8083 (3.0796)  time: 4.8552  data: 0.0136  max mem: 8709
+Epoch: [5]  [35/52]  eta: 0:01:23  lr: 0.000077  loss: 2.4398 (3.0520)  time: 4.8590  data: 0.0128  max mem: 8709
+Epoch: [5]  [40/52]  eta: 0:00:58  lr: 0.000077  loss: 3.3518 (3.0408)  time: 4.8613  data: 0.0128  max mem: 8709
+Epoch: [5]  [45/52]  eta: 0:00:34  lr: 0.000077  loss: 3.1728 (3.0323)  time: 4.8443  data: 0.0127  max mem: 8709
+Epoch: [5]  [50/52]  eta: 0:00:09  lr: 0.000076  loss: 3.2881 (3.0362)  time: 4.8414  data: 0.0125  max mem: 8709
+Epoch: [5] Total time: 0:04:12
+Test:  [ 0/91]  eta: 0:03:15    time: 2.1496  data: 0.6988  max mem: 8709
+Test:  [10/91]  eta: 0:16:45    time: 12.4181  data: 0.0772  max mem: 8709
+Test:  [20/91]  eta: 0:15:43    time: 13.8432  data: 0.0161  max mem: 8709
+Test:  [30/91]  eta: 0:13:50    time: 14.2635  data: 0.0167  max mem: 8709
+Test:  [40/91]  eta: 0:11:35    time: 14.0179  data: 0.0166  max mem: 8709
+Test:  [50/91]  eta: 0:09:08    time: 13.0068  data: 0.0177  max mem: 8709
+Test:  [60/91]  eta: 0:06:55    time: 12.9447  data: 0.0180  max mem: 8709
+Test:  [70/91]  eta: 0:04:40    time: 13.2638  data: 0.0187  max mem: 8709
+Test:  [80/91]  eta: 0:02:26    time: 12.9486  data: 0.0184  max mem: 8709
+Test:  [90/91]  eta: 0:00:13    time: 13.1678  data: 0.0161  max mem: 8709
+Test: Total time: 0:20:10
+global correct: 72.8
+average row correct: ['99.2', '0.0', '0.0', '0.0', '0.0', '0.0', '2.0', '0.2', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '1.2', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
+IoU: ['73.1', '0.0', '0.0', '0.0', '0.0', '0.0', '1.5', '0.2', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0', '0.9', '0.0', '0.0', '0.0', '0.0', '0.0', '0.0']
+mean IoU: 3.6
+Epoch: [6]  [ 0/52]  eta: 0:04:36  lr: 0.000076  loss: 3.2306 (3.2306)  time: 5.3114  data: 0.7333  max mem: 8709
+Epoch: [6]  [ 5/52]  eta: 0:03:53  lr: 0.000075  loss: 2.7858 (3.2587)  time: 4.9705  data: 0.1324  max mem: 8709
+Epoch: [6]  [10/52]  eta: 0:03:25  lr: 0.000075  loss: 3.2301 (3.1325)  time: 4.8875  data: 0.0783  max mem: 8709
+Epoch: [6]  [15/52]  eta: 0:03:00  lr: 0.000074  loss: 2.8207 (3.0170)  time: 4.8820  data: 0.0576  max mem: 8709
+Epoch: [6]  [20/52]  eta: 0:02:35  lr: 0.000074  loss: 3.3458 (3.0592)  time: 4.8416  data: 0.0127  max mem: 8709
+Epoch: [6]  [25/52]  eta: 0:02:11  lr: 0.000074  loss: 3.0335 (3.0279)  time: 4.8637  data: 0.0126  max mem: 8709
+Epoch: [6]  [30/52]  eta: 0:01:47  lr: 0.000073  loss: 2.4373 (2.9865)  time: 4.8589  data: 0.0123  max mem: 8709
+Epoch: [6]  [35/52]  eta: 0:01:22  lr: 0.000073  loss: 3.0078 (3.0026)  time: 4.8719  data: 0.0122  max mem: 8709
+Epoch: [6]  [40/52]  eta: 0:00:58  lr: 0.000072  loss: 2.6479 (3.0094)  time: 4.8688  data: 0.0118  max mem: 8709
+Epoch: [6]  [45/52]  eta: 0:00:34  lr: 0.000072  loss: 2.8455 (3.0008)  time: 4.8507  data: 0.0118  max mem: 8709
+Epoch: [6]  [50/52]  eta: 0:00:09  lr: 0.000071  loss: 3.2293 (3.0053)  time: 4.8543  data: 0.0117  max mem: 8709
+Epoch: [6] Total time: 0:04:13
+Test:  [ 0/91]  eta: 0:03:12    time: 2.1147  data: 0.6625  max mem: 8709
+Test:  [10/91]  eta: 0:16:42    time: 12.3724  data: 0.0736  max mem: 8709
+Test:  [20/91]  eta: 0:15:39    time: 13.7932  data: 0.0149  max mem: 8709
+Test:  [30/91]  eta: 0:13:47    time: 14.2323  data: 0.0159  max mem: 8709
+Test:  [40/91]  eta: 0:11:33    time: 13.9879  data: 0.0174  max mem: 8709
+Test:  [50/91]  eta: 0:09:06    time: 12.9571  data: 0.0172  max mem: 8709
+Test:  [60/91]  eta: 0:06:54    time: 12.9067  data: 0.0159  max mem: 8709
+Test:  [70/91]  eta: 0:04:39    time: 13.2535  data: 0.0172  max mem: 8709
+WARNING:torch.distributed.elastic.multiprocessing.api:Sending process 9995 closing signal SIGTERM
+ERROR:torch.distributed.elastic.multiprocessing.api:failed (exitcode: -15) local_rank: 0 (pid: 9994) of binary: /home/zk/anaconda3/bin/python
+Traceback (most recent call last):
+  File "/home/zk/anaconda3/bin/torchrun", line 8, in <module>
+    sys.exit(main())
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/elastic/multiprocessing/errors/__init__.py", line 345, in wrapper
+    return f(*args, **kwargs)
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/run.py", line 761, in main
+    run(args)
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/run.py", line 752, in run
+    elastic_launch(
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/launcher/api.py", line 131, in __call__
+    return launch_agent(self._config, self._entrypoint, list(args))
+  File "/home/zk/anaconda3/lib/python3.9/site-packages/torch/distributed/launcher/api.py", line 245, in launch_agent
+    raise ChildFailedError(
+torch.distributed.elastic.multiprocessing.errors.ChildFailedError: 
+======================================================
+train_multi_GPU.py FAILED
+------------------------------------------------------
+Failures:
+  <NO_OTHER_FAILURES>
+------------------------------------------------------
+Root Cause (first observed failure):
+[0]:
+  time      : 2022-11-15_13:18:04
+  host      : GPU1
+  rank      : 0 (local_rank: 0)
+  exitcode  : -15 (pid: 9994)
+  error_file: <N/A>
+  traceback : Signal 15 (SIGTERM) received by PID 9994
+======================================================
