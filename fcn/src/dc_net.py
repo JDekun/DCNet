@@ -79,12 +79,16 @@ class FCN(nn.Module):
     def __init__(self, args, backbone, classifier, aux_classifier=None, ProjectorHead=None):
         super(FCN, self).__init__()
         self.loss_name = args.loss_name
+        self.contrast = args.contrast
+
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
-        self.ProjectorHead_3d = ProjectorHead[4]
-        if self.loss_name != "intra":
-            self.ProjectorHead_3u = ProjectorHead[5]
+
+        if self.contrast:
+            self.ProjectorHead_3d = ProjectorHead[4]
+            if self.loss_name != "intra":
+                self.ProjectorHead_3u = ProjectorHead[5]
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -101,22 +105,24 @@ class FCN(nn.Module):
         if self.aux_classifier is not None:
             x = features["aux"]
             L3a = self.aux_classifier(x)
+            if not self.contrast:
             # 原论文中虽然使用的是ConvTranspose2d，但权重是冻结的，所以就是一个bilinear插值
-            # x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-            # result["aux"] = x
+                x = F.interpolate(L3a, size=input_shape, mode='bilinear', align_corners=False)
+                result["aux"] = x
 
         # if self.ProjectorHead is not None:
-        L3d = features["aux"]
-        L3d = self.ProjectorHead_3d(L3d)
-        L3d = F.normalize(L3d, p=2, dim=1)
+        if self.contrast:
+            L3d = features["aux"]
+            L3d = self.ProjectorHead_3d(L3d)
+            L3d = F.normalize(L3d, p=2, dim=1)
 
-        if self.loss_name != "intra":
-            L3u = cls_["L3u"]
-            L3u = self.ProjectorHead_3u(L3u)
-            L3u = F.normalize(L3u, p=2, dim=1)
-            result["L3"] = [L3d, L3a, L3u]
-        else:
-            result["L3"] = [L3d, L3a]
+            if self.loss_name != "intra":
+                L3u = cls_["L3u"]
+                L3u = self.ProjectorHead_3u(L3u)
+                L3u = F.normalize(L3u, p=2, dim=1)
+                result["L3"] = [L3d, L3a, L3u]
+            else:
+                result["L3"] = [L3d, L3a]
 
         return result
 
@@ -142,15 +148,15 @@ class FCNHead(nn.Module):
         self.L3u = nn.Sequential(
             nn.Conv2d(in_channels, L3u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L3u_channels),
-            nn.ReLU(inplace=True))
+            nn.ReLU())
         self.L2u =nn.Sequential(
             nn.Conv2d(L3u_channels, L2u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L2u_channels),
-            nn.ReLU(inplace=True))
+            nn.ReLU())
         self.L1u =nn.Sequential(
             nn.Conv2d(L2u_channels, L1u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L1u_channels),
-            nn.ReLU(inplace=True))
+            nn.ReLU())
         self.cls =nn.Sequential(
             nn.Dropout(0.1),
             nn.Conv2d(L1u_channels, channels, 1))
@@ -225,13 +231,15 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = FCNHead(out_inplanes, num_classes)
 
-    Projector_3d = ProjectorHead(out_inplanes//2, project_dim)
-    Projector_3u = ProjectorHead(out_inplanes//2, project_dim)
-    Projector_2d = ProjectorHead(out_inplanes//4, project_dim)
-    Projector_2u = ProjectorHead(out_inplanes//4, project_dim)
-    Projector_1d = ProjectorHead(out_inplanes//8, project_dim)
-    Projector_1u = ProjectorHead(out_inplanes//8, project_dim)
-    prejector = [Projector_1d, Projector_1u, Projector_2d, Projector_2u, Projector_3d, Projector_3u]
+    prejector = None
+    if args.contrast:
+        Projector_3d = ProjectorHead(out_inplanes//2, project_dim)
+        Projector_3u = ProjectorHead(out_inplanes//2, project_dim)
+        Projector_2d = ProjectorHead(out_inplanes//4, project_dim)
+        Projector_2u = ProjectorHead(out_inplanes//4, project_dim)
+        Projector_1d = ProjectorHead(out_inplanes//8, project_dim)
+        Projector_1u = ProjectorHead(out_inplanes//8, project_dim)
+        prejector = [Projector_1d, Projector_1u, Projector_2d, Projector_2u, Projector_3d, Projector_3u]
 
     model = FCN(args, backbone, classifier, aux_classifier, prejector)
 

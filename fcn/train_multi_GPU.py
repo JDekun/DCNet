@@ -77,10 +77,10 @@ def create_model(args):
             if "classifier.4" in k:
                 del weights_dict[k]
 
-    # missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-    # if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-    #     print("missing_keys: ", missing_keys)
-    #     print("unexpected_keys: ", unexpected_keys)
+    missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+    if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+        print("missing_keys: ", missing_keys)
+        print("unexpected_keys: ", unexpected_keys)
 
     return model
 
@@ -94,9 +94,13 @@ def main(args):
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
+    name_date = args.name_date
+    if name_date:
+        name = name_date.split('/')[0]
+        mkdir("./experiment/result/" + name)
     # 用来保存运行结果的文件，只在主进程上进行写操作
-    results_log = args.result_save + ".log"
-    results_csv = args.result_save + ".csv"
+    results_log = "./experiment/result" + "/" + name_date + ".log"
+    results_csv = "./experiment/result" +"/"+ name_date + ".csv"
     if args.rank in [-1, 0]:
         # write into csv
         with open(results_csv, "a") as f:
@@ -220,7 +224,7 @@ def main(args):
 
         ##### wandb #####
         if args.wandb and (args.rank in [-1, 0]):
-            wandb.log({"mean_loss": mean_loss, "mIOU": iu.mean().item() * 100, "acc_global": acc_global, "lr": lr})
+            wandb.log({"mean_loss": mean_loss, "mIOU": iu.mean().item() * 100, "acc_global": acc_global, "lr": lr, "epoch": epoch})
 
 
         # 只在主进程上进行写操作
@@ -231,7 +235,7 @@ def main(args):
                 train_info = f"{epoch},{mean_loss},{iu.mean().item() * 100},{acc_global},{lr}\n" 
                 f.write(train_info)
 
-        if args.output_dir:
+        if args.checkpoint_dir:
             # 只在主节点上执行保存权重操作
             save_file = {'model': model_without_ddp.state_dict(),
                          'optimizer': optimizer.state_dict(),
@@ -241,9 +245,9 @@ def main(args):
             if args.amp:
                 save_file["scaler"] = scaler.state_dict()
             save_on_master(save_file,
-                           os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+                            '{}/model_{}.pth'.format(args.checkpoint_dir, epoch))
             if is_main_process() and args.wandb:
-                wandb.save(os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+                wandb.save('{}/model_{}.pth'.format(args.checkpoint_dir, epoch))
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -254,8 +258,8 @@ def main(args):
             batch_size = 1
             input_shape = (3, 480, 480)
             x = torch.randn(batch_size,*input_shape).cuda()
-            torch.onnx.export(model.module, x, "./{}/model_{}.onnx".format(args.output_dir, epoch))
-            wandb.save("./{}/model_{}.onnx".format(args.output_dir, epoch))
+            torch.onnx.export(model.module, x, "{}/model_{}.onnx".format(args.checkpoint_dir, name_date, epoch))
+            wandb.save("{}/model_{}.onnx".format(args.checkpoint_dir, name_date, epoch))
 
             wandb.save(results_csv)
             wandb.save(results_log)
@@ -326,7 +330,7 @@ if __name__ == "__main__":
     # 训练过程打印信息的频率
     parser.add_argument('--print-freq', default=5, type=int, help='print frequency')
     # 文件保存地址
-    parser.add_argument('--output_dir', default='./multi_train', help='path where to save')
+    parser.add_argument('--checkpoint_dir', default='./checkpoint', help='path where to save')
     # 基于上次的训练结果接着训练
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     # 不训练，仅测试
@@ -347,7 +351,7 @@ if __name__ == "__main__":
     parser.add_argument("--seed", default=304, type=int,
                         help="random seed")
 
-    parser.add_argument("--result_save", default='./experiment/result', type=str,
+    parser.add_argument("--name_date", default='experiment_name/date', type=str,
                         help="save file for result")
 
     # wandb设置
@@ -356,17 +360,17 @@ if __name__ == "__main__":
 
     # DCNet专属设计
     parser.add_argument('--model_name', default='fcn_resnet50', type=str, help='fcn_resnet50 dcnet_resnet50')
-    parser.add_argument("--project_dim", default=128, type=int,
-                        help="the dim of projector")
-    parser.add_argument("--loss_name", default="intra", type=str,
-                        help="segloss intra inter double")
+    parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
+    parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
+    parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
 
     args = parser.parse_args()
 
     set_seed(args.seed)
 
     # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
-    if args.output_dir:
-        mkdir(args.output_dir)
+    if args.checkpoint_dir:
+        args.checkpoint_dir = args.checkpoint_dir + "/" + args.name_date
+        mkdir(args.checkpoint_dir)
 
     main(args)

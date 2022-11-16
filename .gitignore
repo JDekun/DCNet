@@ -3,6 +3,7 @@ fcn/__pycache__
 fcn/fcn_resnet50_coco.pth
 fcn/wandb
 fcn/pre_trained
+fcn/checkpoint
 
 unet/multi_train
 unet/save_weights

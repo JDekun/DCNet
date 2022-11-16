@@ -10,7 +10,7 @@ from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 def criterion(args, inputs, target):
     losses = {}
     loss_name = args.loss_name
-    if args.model_name == "fcn_resnet50":
+    if args.model_name == "fcn_resnet50" or args.contrast == False:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
