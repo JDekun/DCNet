@@ -60,6 +60,7 @@ def create_model(args):
     num_classes = args.num_classes + 1
     aux = aux=args.aux
     model_name = args.model_name
+    backbone = args.backbone
 
     if model_name == "fcn_resnet50":
         model = fcn_resnet50(aux=aux, num_classes=num_classes)
@@ -68,8 +69,11 @@ def create_model(args):
     else:
         raise ValueError("model_name are not present in model")
 
-    weights_dict = torch.load("./pre_trained/fcn_resnet50_coco.pth", map_location='cpu')
-
+    if backbone == "fcn_resnet50_coco":
+        weights_dict = torch.load("./pre_trained/fcn_resnet50_coco.pth", map_location='cpu')
+    else:
+        weights_dict = torch.load(f"./pre_trained/{backbone}.pth", map_location='cpu')
+        
     if num_classes != 21:
         # 官方提供的预训练权重是21类(包括背景)
         # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
@@ -77,7 +81,12 @@ def create_model(args):
             if "classifier.4" in k:
                 del weights_dict[k]
 
-    missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+    if backbone == "fcn_resnet50_coco":
+        missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+    else:
+        missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
+
+        
     if len(missing_keys) != 0 or len(unexpected_keys) != 0:
         print("missing_keys: ", missing_keys)
         print("unexpected_keys: ", unexpected_keys)
@@ -164,6 +173,11 @@ def main(args):
     if args.aux:
         params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
         params_to_optimize.append({"params": params, "lr": args.lr * 10})
+
+    # if args.contrast:
+    #     params = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
+    #     params_to_optimize.append({"params": params, "lr": args.lr * 100})
+    
     optimizer = torch.optim.SGD(
         params_to_optimize,
         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
@@ -200,6 +214,7 @@ def main(args):
         wandb.config.update(args)
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
+    print(model)
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -363,6 +378,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
+    parser.add_argument("--backbone", default="fcn_resnet50_coco", type=str, help="backbone name")
 
     args = parser.parse_args()
 
