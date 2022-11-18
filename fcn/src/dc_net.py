@@ -148,15 +148,15 @@ class FCNHead(nn.Module):
         self.L3u = nn.Sequential(
             nn.Conv2d(in_channels, L3u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L3u_channels),
-            nn.ReLU())
+            nn.ReLU(inplace=True))
         self.L2u =nn.Sequential(
             nn.Conv2d(L3u_channels, L2u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L2u_channels),
-            nn.ReLU())
+            nn.ReLU(inplace=True))
         self.L1u =nn.Sequential(
             nn.Conv2d(L2u_channels, L1u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L1u_channels),
-            nn.ReLU())
+            nn.ReLU(inplace=True))
         self.cls =nn.Sequential(
             nn.Dropout(0.1),
             nn.Conv2d(L1u_channels, channels, 1))
@@ -183,7 +183,7 @@ class FCNHead_aux(nn.Sequential):
         layers = [
             nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(inter_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Dropout(0.1),
             nn.Conv2d(inter_channels, channels, 1)
         ]
@@ -196,10 +196,10 @@ class ProjectorHead(nn.Sequential):
         layers = [
             nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(inter_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(inter_channels, channels, 1, bias=False),
             nn.BatchNorm2d(channels),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         ]
 
         super(ProjectorHead, self).__init__(*layers)

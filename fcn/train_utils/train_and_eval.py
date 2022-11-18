@@ -10,6 +10,7 @@ from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 def criterion(args, inputs, target):
     losses = {}
     loss_name = args.loss_name
+    L3_loss = args.L3_loss
     if args.model_name == "fcn_resnet50" or args.contrast == False:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
@@ -45,7 +46,7 @@ def criterion(args, inputs, target):
                 else:
                     print("the name of loss is None !!!")
 
-                losses[name] = loss_contrast * 0.2 + loss * 0.5
+                losses[name] = loss_contrast * L3_loss + loss
 
     if len(losses) == 1:
         return losses['out']

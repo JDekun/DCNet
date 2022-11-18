@@ -173,10 +173,13 @@ def main(args):
     if args.aux:
         params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
         params_to_optimize.append({"params": params, "lr": args.lr * 10})
-
-    # if args.contrast:
-    #     params = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
-    #     params_to_optimize.append({"params": params, "lr": args.lr * 100})
+        
+    if args.contrast:
+        params = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
+        params_to_optimize.append({"params": params, "lr": args.lr * 100})
+        if args.loss_name != "intra":
+            params = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
+            params_to_optimize.append({"params": params, "lr": args.lr * 100})
     
     optimizer = torch.optim.SGD(
         params_to_optimize,
@@ -193,12 +196,18 @@ def main(args):
         # and then copy each parameter to where it was saved,
         # which would result in all processes on the same machine using the same set of devices.
         checkpoint = torch.load(args.resume, map_location='cpu')  # 读取之前保存的权重文件(包括优化器以及学习率策略)
-        model_without_ddp.load_state_dict(checkpoint['model'])
+        
+        missing_keys, unexpected_keys = model_without_ddp.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         args.start_epoch = checkpoint['epoch'] + 1
+
         if args.amp:
             scaler.load_state_dict(checkpoint["scaler"])
+        
+        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+            print("missing_keys: ", missing_keys)
+            print("unexpected_keys: ", unexpected_keys)
 
     if args.test_only:
         confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
@@ -379,6 +388,7 @@ if __name__ == "__main__":
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
     parser.add_argument("--backbone", default="fcn_resnet50_coco", type=str, help="backbone name")
+    parser.add_argument("--L3_loss", default=0.1, type=float, help="L3 loss")
 
     args = parser.parse_args()
 
