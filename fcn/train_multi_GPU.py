@@ -213,7 +213,7 @@ def main(args):
     if args.wandb and (args.rank in [-1, 0]):
         os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
         os.environ['WANDB_MODE'] = args.wandb_model
-        wandb.init(project="fcn")
+        wandb.init(project="DCNet")
         wandb.config.update(args)
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
