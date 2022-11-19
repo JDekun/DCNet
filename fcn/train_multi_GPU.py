@@ -60,7 +60,7 @@ def create_model(args):
     num_classes = args.num_classes + 1
     aux = aux=args.aux
     model_name = args.model_name
-    backbone = args.backbone
+    pre_trained = args.pre_trained
 
     if model_name == "fcn_resnet50":
         model = fcn_resnet50(aux=aux, num_classes=num_classes)
@@ -69,33 +69,31 @@ def create_model(args):
     else:
         raise ValueError("model_name are not present in model")
 
-    if backbone == "fcn_resnet50_coco":
-        weights_dict = torch.load("./pre_trained/fcn_resnet50_coco.pth", map_location='cpu')
-    else:
-        weights_dict = torch.load(f"./pre_trained/{backbone}.pth", map_location='cpu')
-        
-    if num_classes != 21:
-        # 官方提供的预训练权重是21类(包括背景)
-        # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
-        for k in list(weights_dict.keys()):
-            if "classifier.4" in k:
-                del weights_dict[k]
+    if pre_trained != "None":
+        weights_dict = torch.load(f"./pre_trained/{pre_trained}.pth", map_location='cpu')
+            
+        if num_classes != 21:
+            # 官方提供的预训练权重是21类(包括背景)
+            # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
+            for k in list(weights_dict.keys()):
+                if "classifier.4" in k:
+                    del weights_dict[k]
 
-    if backbone == "fcn_resnet50_coco":
-        missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-    else:
-        missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
-
-        
-    if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-        print("missing_keys: ", missing_keys)
-        print("unexpected_keys: ", unexpected_keys)
+        if pre_trained == "fcn_resnet50_coco":
+            missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+        else:
+            missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
+   
+        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+            print("missing_keys: ", missing_keys)
+            print("unexpected_keys: ", unexpected_keys)
 
     return model
 
 
 def main(args):
     init_distributed_mode(args)
+    print(args.name_date)
     print(args)
 
 
@@ -103,13 +101,9 @@ def main(args):
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
-    name_date = args.name_date
-    if name_date:
-        name = name_date.split('/')[0]
-        mkdir("./experiment/result/" + name)
     # 用来保存运行结果的文件，只在主进程上进行写操作
-    results_log = "./experiment/result" + "/" + name_date + ".log"
-    results_csv = "./experiment/result" +"/"+ name_date + ".csv"
+    results_log = args.checkpoint_dir + "/output.log"
+    results_csv = args.checkpoint_dir + "/metadata.csv"
     if args.rank in [-1, 0]:
         # write into csv
         with open(results_csv, "a") as f:
@@ -258,8 +252,11 @@ def main(args):
                 # 记录每个epoch对应的train_loss、lr以及验证集各指标
                 train_info = f"{epoch},{mean_loss},{iu.mean().item() * 100},{acc_global},{lr}\n" 
                 f.write(train_info)
-
+          
+        
         if args.checkpoint_dir:
+            # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
+            mkdir(args.checkpoint_dir)
             # 只在主节点上执行保存权重操作
             save_file = {'model': model_without_ddp.state_dict(),
                          'optimizer': optimizer.state_dict(),
@@ -269,9 +266,8 @@ def main(args):
             if args.amp:
                 save_file["scaler"] = scaler.state_dict()
             save_on_master(save_file,
-                            '{}/model_{}.pth'.format(args.checkpoint_dir, epoch))
-            if is_main_process() and args.wandb:
-                wandb.save('{}/model_{}.pth'.format(args.checkpoint_dir, epoch))
+                            '{}/checkpoints/model_{}.pth'.format(args.checkpoint_dir, epoch))
+                
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
@@ -279,11 +275,13 @@ def main(args):
 
     # 只在主节点上保存
     if is_main_process() and args.wandb:
-            batch_size = 1
-            input_shape = (3, 480, 480)
-            x = torch.randn(batch_size,*input_shape).cuda()
-            torch.onnx.export(model.module, x, "{}/model_{}.onnx".format(args.checkpoint_dir, name_date, epoch))
-            wandb.save("{}/model_{}.onnx".format(args.checkpoint_dir, name_date, epoch))
+            # batch_size = 1
+            # input_shape = (3, 480, 480)
+            # x = torch.randn(batch_size,*input_shape).cuda()
+            # torch.onnx.export(model.module, x, "{}/model_{}.onnx".format(args.checkpoint_dir, epoch))
+            # wandb.save("{}/model_{}.onnx".format(args.checkpoint_dir, epoch))
+
+            wandb.save('{}/checkpoints/model_{}.pth'.format(args.checkpoint_dir, epoch))
 
             wandb.save(results_csv)
             wandb.save(results_log)
@@ -354,7 +352,7 @@ if __name__ == "__main__":
     # 训练过程打印信息的频率
     parser.add_argument('--print-freq', default=5, type=int, help='print frequency')
     # 文件保存地址
-    parser.add_argument('--checkpoint_dir', default='./checkpoint', help='path where to save')
+    parser.add_argument('--checkpoint_dir', default='./results', help='path where to save')
     # 基于上次的训练结果接着训练
     parser.add_argument('--resume', default='', help='resume from checkpoint')
     # 不训练，仅测试
@@ -387,16 +385,16 @@ if __name__ == "__main__":
     parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
-    parser.add_argument("--backbone", default="fcn_resnet50_coco", type=str, help="backbone name")
-    parser.add_argument("--L3_loss", default=0.1, type=float, help="L3 loss")
+    parser.add_argument("--pre_trained", default="None", type=str, help="pre_trained name")
+    parser.add_argument("--L3_loss", default=0.2, type=float, help="L3 loss")
 
     args = parser.parse_args()
 
     set_seed(args.seed)
 
-    # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
     if args.checkpoint_dir:
         args.checkpoint_dir = args.checkpoint_dir + "/" + args.name_date
         mkdir(args.checkpoint_dir)
+        mkdir(args.checkpoint_dir + "/checkpoints")
 
     main(args)

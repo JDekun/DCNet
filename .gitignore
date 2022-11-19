@@ -4,6 +4,8 @@ fcn/fcn_resnet50_coco.pth
 fcn/wandb
 fcn/pre_trained
 fcn/checkpoint
+fcn/results
+fcn/scripts
 
 unet/multi_train
 unet/save_weights
