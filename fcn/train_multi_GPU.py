@@ -81,6 +81,9 @@ def create_model(args):
 
         if pre_trained == "fcn_resnet50_coco":
             missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+            # for k in list(weights_dict.keys()):
+            #     if "classifier" in k:
+            #         del weights_dict[k]
         else:
             missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
    
@@ -281,7 +284,7 @@ def main(args):
             # torch.onnx.export(model.module, x, "{}/model_{}.onnx".format(args.checkpoint_dir, epoch))
             # wandb.save("{}/model_{}.onnx".format(args.checkpoint_dir, epoch))
 
-            wandb.save('{}/checkpoints/model_{}.pth'.format(args.checkpoint_dir, epoch))
+            # wandb.save('{}/checkpoints/model_{}.pth'.format(args.checkpoint_dir, epoch))
 
             wandb.save(results_csv)
             wandb.save(results_log)
@@ -385,7 +388,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
-    parser.add_argument("--pre_trained", default="None", type=str, help="pre_trained name")
+    parser.add_argument("--pre_trained", default="fcn_resnet50_coco", type=str, help="pre_trained name")
     parser.add_argument("--L3_loss", default=0.2, type=float, help="L3 loss")
 
     args = parser.parse_args()
