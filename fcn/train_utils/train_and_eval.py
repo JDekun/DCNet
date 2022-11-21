@@ -23,18 +23,21 @@ def criterion(args, inputs, target):
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             if name == "out":
-                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+                pred_y = x
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) 
             elif name == "L3":
                 proj_x = x[0]
-                pred_y = x[1]
                 if loss_name != "intra":
                     proj_y = x[2]
-                _, predict = torch.max(pred_y, 1)
-                
-                # 每层的语义分割像素交叉熵损失
-                h, w = target.size(1), target.size(2)
+
+                h, w = proj_x.size(2), proj_x.size(3)
                 pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
-                loss = nn.functional.cross_entropy(pred, target, ignore_index=255)
+                _, predict = torch.max(pred, 1)
+                
+                # # 每层的语义分割像素交叉熵损失
+                # h, w = target.size(1), target.size(2)
+                # pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
+                # loss = nn.functional.cross_entropy(pred, target, ignore_index=255)
 
                 # 层内对比损失
                 if loss_name == "intra":
@@ -46,7 +49,7 @@ def criterion(args, inputs, target):
                 else:
                     print("the name of loss is None !!!")
 
-                losses[name] = loss_contrast * L3_loss + loss
+                losses[name] = loss_contrast * L3_loss
 
     if len(losses) == 1:
         return losses['out']

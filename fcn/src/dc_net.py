@@ -120,9 +120,15 @@ class FCN(nn.Module):
                 L3u = cls_["L3u"]
                 L3u = self.ProjectorHead_3u(L3u)
                 L3u = F.normalize(L3u, p=2, dim=1)
-                result["L3"] = [L3d, L3a, L3u]
+                if self.aux_classifier is not None:
+                    result["L3"] = [L3d, L3a, L3u]
+                else:
+                    result["L3"] = [L3d, L3u]
             else:
-                result["L3"] = [L3d, L3a]
+                if self.aux_classifier is not None:
+                    result["L3"] = [L3d, L3a]
+                else:
+                    result["L3"] = [L3d]
 
         return result
 
@@ -220,8 +226,8 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
-    if aux:
-        return_layers['layer3'] = 'aux'
+    return_layers['layer3'] = 'aux'
+    
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     aux_classifier = None

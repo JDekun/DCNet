@@ -331,7 +331,7 @@ if __name__ == "__main__":
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     parser.add_argument('--batch_size_val', default=8, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
-    parser.add_argument("--aux", default=True, type=str2bool, help="auxilier loss")
+    parser.add_argument("--aux", default=False, type=str2bool, help="auxilier loss")
     # 指定接着从哪个epoch数开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     # 训练的总epoch数
