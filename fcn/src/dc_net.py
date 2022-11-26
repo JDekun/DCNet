@@ -87,8 +87,7 @@ class FCN(nn.Module):
 
         if self.contrast:
             self.ProjectorHead_3d = ProjectorHead[4]
-            if self.loss_name != "intra":
-                self.ProjectorHead_3u = ProjectorHead[5]
+            self.ProjectorHead_3u = ProjectorHead[5]
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -97,53 +96,32 @@ class FCN(nn.Module):
 
         result = OrderedDict()
         x = features["out"]
-        cls_ = self.classifier(x)
+        classifer = self.classifier(x)
         # 原论文中虽然使用的是ConvTranspose2d，但权重是冻结的，所以就是一个bilinear插值
-        x = F.interpolate(cls_["cls"], size=input_shape, mode='bilinear', align_corners=False)
-        result["out"] = x
+        out = F.interpolate(classifer["cls"], size=input_shape, mode='bilinear', align_corners=False)
+        result["out"] = out
 
-        if self.aux_classifier is not None:
-            x = features["aux"]
-            L3a = self.aux_classifier(x)
-            if not self.contrast:
-            # 原论文中虽然使用的是ConvTranspose2d，但权重是冻结的，所以就是一个bilinear插值
-                x = F.interpolate(L3a, size=input_shape, mode='bilinear', align_corners=False)
-                result["aux"] = x
+        # if self.aux_classifier is not None:
+        #     x = features["aux"]
+        #     L3a = self.aux_classifier(x)
+        #     if not self.contrast:
+        #     # 原论文中虽然使用的是ConvTranspose2d，但权重是冻结的，所以就是一个bilinear插值
+        #         x = F.interpolate(L3a, size=input_shape, mode='bilinear', align_corners=False)
+        #         result["aux"] = x
 
         # if self.ProjectorHead is not None:
         if self.contrast:
-            L3d = features["aux"]
+            L3d = features["l3d"]
             L3d = self.ProjectorHead_3d(L3d)
             L3d = F.normalize(L3d, p=2, dim=1)
 
-            if self.loss_name != "intra":
-                L3u = cls_["L3u"]
-                L3u = self.ProjectorHead_3u(L3u)
-                L3u = F.normalize(L3u, p=2, dim=1)
-                if self.aux_classifier is not None:
-                    result["L3"] = [L3d, L3a, L3u]
-                else:
-                    result["L3"] = [L3d, L3u]
-            else:
-                if self.aux_classifier is not None:
-                    result["L3"] = [L3d, L3a]
-                else:
-                    result["L3"] = [L3d]
+            L3u = classifer["L3u"]
+            L3u = self.ProjectorHead_3u(L3u)
+            L3u = F.normalize(L3u, p=2, dim=1)
 
+            result["L3"] = [L3d, L3u]
+                
         return result
-
-# class FCNHead(nn.Sequential):
-#     def __init__(self, in_channels, channels):
-#         inter_channels = in_channels // 4
-#         layers = [
-#             nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
-#             nn.BatchNorm2d(inter_channels),
-#             nn.ReLU(),
-#             nn.Dropout(0.1),
-#             nn.Conv2d(inter_channels, channels, 1)
-#         ]
-
-#         super(FCNHead, self).__init__(*layers)
 
 class FCNHead(nn.Module):
     def __init__(self, in_channels, channels):
@@ -226,7 +204,7 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
-    return_layers['layer3'] = 'aux'
+    return_layers['layer3'] = 'l3d'
     
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 

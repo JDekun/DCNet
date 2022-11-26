@@ -14,6 +14,10 @@ unet/train_utils/__pycache__
 unet/output-before
 unet/wandb
 
+deeplab_v3/multi_train
+deeplab_v3/deeplabv3_resnet50_coco.pth
+
+
 *.swo
 *.swp
 
