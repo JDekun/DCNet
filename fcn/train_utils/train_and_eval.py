@@ -7,29 +7,26 @@ from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 
 
-def criterion(args, inputs, target):
+def criterion(args, inputs, target, epoch):
     losses = {}
     loss_name = args.loss_name
-    L3_loss = args.L3_loss
+    
     if args.model_name == "fcn_resnet50" or args.contrast == False:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
-        if len(losses) == 1:
-            return losses['out']
-        else:
-            return losses['out'] + 0.5 * losses['aux']
+        return losses['out']
     else:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             if name == "out":
                 pred_y = x
                 losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) 
-            elif name == "L3":
+            else:
                 proj_x = x[0]
                 proj_y = x[1]
 
-                h, w = 60, 60
+                h, w = proj_y.shape[2], proj_y.shape[3]
                 pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
                 _, predict = torch.max(pred, 1)
                 
@@ -48,12 +45,21 @@ def criterion(args, inputs, target):
                 else:
                     print("the name of loss is None !!!")
 
-                losses[name] = loss_contrast * L3_loss
+                if name == "L1":
+                    contrast_loss = args.L1_loss
+                elif name == "L2":
+                    contrast_loss = args.L2_loss
+                elif name == "L3":
+                    contrast_loss = args.L3_loss
+                losses[name] = loss_contrast * contrast_loss
 
     if len(losses) == 1:
         return losses['out']
-
-    return losses['out'] + 0.5 * losses['L3']
+    
+    if args.contrast > epoch:
+        return losses['out'] + 0 * losses['L3'] + 0 * losses['L2'] + 0 * losses['L1']
+    else:
+        return losses['out'] + losses['L3'] + losses['L2'] + losses['L1']
 
 
 def evaluate(model, data_loader, device, num_classes):
@@ -84,7 +90,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(image)
-            loss = criterion(args, output, target)
+            loss = criterion(args, output, target, epoch)
 
         optimizer.zero_grad()
         if scaler is not None:

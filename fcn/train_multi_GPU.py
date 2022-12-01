@@ -80,10 +80,10 @@ def create_model(args):
                     del weights_dict[k]
 
         if pre_trained == "fcn_resnet50_coco":
+            for k in list(weights_dict.keys()):
+                if "classifier" in k:
+                    del weights_dict[k]
             missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-            # for k in list(weights_dict.keys()):
-            #     if "classifier" in k:
-            #         del weights_dict[k]
         else:
             missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
    
@@ -172,11 +172,19 @@ def main(args):
         params_to_optimize.append({"params": params, "lr": args.lr * 10})
         
     if args.contrast:
-        params = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
-        params_to_optimize.append({"params": params, "lr": args.lr * 100})
+        params_L3d = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
+        params_L2d = [p for p in model_without_ddp.ProjectorHead_2d.parameters() if p.requires_grad]
+        params_L1d = [p for p in model_without_ddp.ProjectorHead_1d.parameters() if p.requires_grad]
+        params_to_optimize.append({"params": params_L3d, "lr": args.lr})
+        params_to_optimize.append({"params": params_L2d, "lr": args.lr})
+        params_to_optimize.append({"params": params_L1d, "lr": args.lr})
         if args.loss_name != "intra":
-            params = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
-            params_to_optimize.append({"params": params, "lr": args.lr * 100})
+            params_L3u = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
+            params_L2u = [p for p in model_without_ddp.ProjectorHead_2u.parameters() if p.requires_grad]
+            params_L1u = [p for p in model_without_ddp.ProjectorHead_1u.parameters() if p.requires_grad]
+            params_to_optimize.append({"params": params_L3u, "lr": args.lr})
+            params_to_optimize.append({"params": params_L2u, "lr": args.lr})
+            params_to_optimize.append({"params": params_L1u, "lr": args.lr})
     
     optimizer = torch.optim.SGD(
         params_to_optimize,
@@ -387,9 +395,11 @@ if __name__ == "__main__":
     parser.add_argument('--model_name', default='fcn_resnet50', type=str, help='fcn_resnet50 dcnet_resnet50')
     parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
-    parser.add_argument("--contrast", default=True, type=str2bool, help="w/o contrast")
+    parser.add_argument("--contrast", default=10, type=int, help="epoch start with contrast")
     parser.add_argument("--pre_trained", default="fcn_resnet50_coco", type=str, help="pre_trained name")
-    parser.add_argument("--L3_loss", default=0.2, type=float, help="L3 loss")
+    parser.add_argument("--L3_loss", default=0.1, type=float, help="L3 loss")
+    parser.add_argument("--L2_loss", default=0.1, type=float, help="L2 loss")
+    parser.add_argument("--L1_loss", default=0.1, type=float, help="L1 loss")
 
     args = parser.parse_args()
 

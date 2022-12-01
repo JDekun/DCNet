@@ -9,6 +9,9 @@ from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_dis
 from my_dataset import VOCSegmentation
 import transforms as T
 
+import numpy as np
+import random
+import wandb
 
 class SegmentationPresetTrain:
     def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
@@ -50,7 +53,7 @@ def get_transform(train):
 
 def create_model(aux, num_classes):
     model = deeplabv3_resnet50(aux=aux, num_classes=num_classes)
-    weights_dict = torch.load("./deeplabv3_resnet50_coco.pth", map_location='cpu')
+    weights_dict = torch.load("./pre_trained/deeplabv3_resnet50_coco.pth", map_location='cpu')
 
     if num_classes != 21:
         # 官方提供的预训练权重是21类(包括背景)
@@ -200,6 +203,29 @@ def main(args):
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
 
+def str2bool(v):
+    """Usage:
+    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True,
+                        dest='pretrained', help='Whether to use pretrained models.')
+    """
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Unsupported value encountered.")
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed) 
+
 
 if __name__ == "__main__":
     import argparse
@@ -216,7 +242,7 @@ if __name__ == "__main__":
     # 每块GPU上的batch_size
     parser.add_argument('-b', '--batch-size', default=4, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
-    parser.add_argument("--aux", default=True, type=bool, help="auxilier loss")
+    parser.add_argument("--aux", default=False, type=bool, help="auxilier loss")
     # 指定接着从哪个epoch数开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
     # 训练的总epoch数
@@ -256,7 +282,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=bool,
+    parser.add_argument("--amp", default=True, type=bool,
                         help="Use torch.cuda.amp for mixed precision training")
 
     args = parser.parse_args()

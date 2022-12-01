@@ -86,6 +86,10 @@ class FCN(nn.Module):
         self.aux_classifier = aux_classifier
 
         if self.contrast:
+            self.ProjectorHead_1d = ProjectorHead[0]
+            self.ProjectorHead_1u = ProjectorHead[1]
+            self.ProjectorHead_2d = ProjectorHead[2]
+            self.ProjectorHead_2u = ProjectorHead[3]
             self.ProjectorHead_3d = ProjectorHead[4]
             self.ProjectorHead_3u = ProjectorHead[5]
 
@@ -111,15 +115,29 @@ class FCN(nn.Module):
 
         # if self.ProjectorHead is not None:
         if self.contrast:
-            L3d = features["l3d"]
+            L3d = features["L3d"]
             L3d = self.ProjectorHead_3d(L3d)
             L3d = F.normalize(L3d, p=2, dim=1)
+            L2d = features["L2d"]
+            L2d = self.ProjectorHead_2d(L2d)
+            L2d = F.normalize(L2d, p=2, dim=1)
+            L1d = features["L1d"]
+            L1d = self.ProjectorHead_1d(L1d)
+            L1d = F.normalize(L1d, p=2, dim=1)
 
             L3u = classifer["L3u"]
             L3u = self.ProjectorHead_3u(L3u)
             L3u = F.normalize(L3u, p=2, dim=1)
+            L2u = classifer["L2u"]
+            L2u = self.ProjectorHead_2u(L2u)
+            L2u = F.normalize(L2u, p=2, dim=1)
+            L1u = classifer["L1u"]
+            L1u = self.ProjectorHead_1u(L1u)
+            L1u = F.normalize(L1u, p=2, dim=1)
 
             result["L3"] = [L3d, L3u]
+            result["L2"] = [L2d, L2u]
+            result["L1"] = [L1d, L1u]
                 
         return result
 
@@ -138,6 +156,7 @@ class FCNHead(nn.Module):
             nn.BatchNorm2d(L2u_channels),
             nn.ReLU(inplace=True))
         self.L1u =nn.Sequential(
+            nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
             nn.Conv2d(L2u_channels, L1u_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(L1u_channels),
             nn.ReLU(inplace=True))
@@ -154,8 +173,8 @@ class FCNHead(nn.Module):
         cls_ = self.cls(L1u)
 
         result["L3u"] =  L3u
-        # result["L2u"] =  L2u
-        # result["L1u"] =  L3u
+        result["L2u"] =  L2u
+        result["L1u"] =  L1u
         result["cls"] =  cls_
         
         return result
@@ -204,7 +223,9 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
-    return_layers['layer3'] = 'l3d'
+    return_layers['layer3'] = 'L3d'
+    return_layers['layer2'] = 'L2d'
+    return_layers['layer1'] = 'L1d'
     
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
