@@ -5,6 +5,7 @@ import torch.nn.functional as F
 from train_utils.intra_contrastive_loss import  IntraPixelContrastLoss
 from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
+from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 
 
 def criterion(args, inputs, target, epoch):
@@ -42,6 +43,7 @@ def criterion(args, inputs, target, epoch):
                     loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
                 elif loss_name == "double":
                     loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    # loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
                 else:
                     print("the name of loss is None !!!")
 

@@ -410,9 +410,9 @@ if __name__ == "__main__":
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=10, type=int, help="epoch start with contrast")
     parser.add_argument("--pre_trained", default="fcn_resnet50_coco", type=str, help="pre_trained name")
-    parser.add_argument("--L3_loss", default=0.1, type=float, help="L3 loss")
-    parser.add_argument("--L2_loss", default=0.1, type=float, help="L2 loss")
-    parser.add_argument("--L1_loss", default=0.1, type=float, help="L1 loss")
+    parser.add_argument("--L3_loss", default=0, type=float, help="L3 loss")
+    parser.add_argument("--L2_loss", default=0, type=float, help="L2 loss")
+    parser.add_argument("--L1_loss", default=0, type=float, help="L1 loss")
 
     args = parser.parse_args()
 
