@@ -141,6 +141,19 @@ class FCN(nn.Module):
                 
         return result
 
+class DoubleConv(nn.Sequential):
+    def __init__(self, in_channels, out_channels, mid_channels=None):
+        if mid_channels is None:
+            mid_channels = out_channels
+        super(DoubleConv, self).__init__(
+            nn.Conv2d(in_channels, mid_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(mid_channels),
+            nn.ReLU(inplace=True),
+            nn.Conv2d(mid_channels, out_channels, kernel_size=3, padding=1, bias=False),
+            nn.BatchNorm2d(out_channels),
+            nn.ReLU(inplace=True)
+        )
+
 class FCNHead(nn.Module):
     def __init__(self, in_channels, channels):
         super(FCNHead, self).__init__()
@@ -148,18 +161,15 @@ class FCNHead(nn.Module):
         L2u_channels = in_channels // 4
         L1u_channels = in_channels // 8
         self.L3u = nn.Sequential(
-            nn.Conv2d(in_channels, L3u_channels, 3, padding=1, bias=False),
-            nn.BatchNorm2d(L3u_channels),
-            nn.ReLU(inplace=True))
+           DoubleConv(in_channels, L3u_channels)
+            )
         self.L2u =nn.Sequential(
-            nn.Conv2d(L3u_channels, L2u_channels, 3, padding=1, bias=False),
-            nn.BatchNorm2d(L2u_channels),
-            nn.ReLU(inplace=True))
+            DoubleConv(L3u_channels, L2u_channels)
+            )
         self.L1u =nn.Sequential(
             nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-            nn.Conv2d(L2u_channels, L1u_channels, 3, padding=1, bias=False),
-            nn.BatchNorm2d(L1u_channels),
-            nn.ReLU(inplace=True))
+            DoubleConv(L2u_channels, L1u_channels),
+            )
         self.cls =nn.Sequential(
             nn.Dropout(0.1),
             nn.Conv2d(L1u_channels, channels, 1))
