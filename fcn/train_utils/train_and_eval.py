@@ -11,7 +11,7 @@ def criterion(args, inputs, target, epoch):
     losses = {}
     loss_name = args.loss_name
     
-    if args.model_name == "fcn_resnet50" or args.contrast == False:
+    if args.model_name == "fcn_resnet50" or args.contrast == -1:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)

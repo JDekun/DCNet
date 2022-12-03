@@ -80,18 +80,26 @@ class FCN(nn.Module):
         super(FCN, self).__init__()
         self.loss_name = args.loss_name
         self.contrast = args.contrast
+        self.L3_loss = args.L3_loss
+        self.L2_loss = args.L2_loss
+        self.L1_loss = args.L1_loss
 
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
 
-        if self.contrast:
-            self.ProjectorHead_1d = ProjectorHead[0]
-            self.ProjectorHead_1u = ProjectorHead[1]
-            self.ProjectorHead_2d = ProjectorHead[2]
-            self.ProjectorHead_2u = ProjectorHead[3]
-            self.ProjectorHead_3d = ProjectorHead[4]
-            self.ProjectorHead_3u = ProjectorHead[5]
+        if self.contrast != -1:
+            if self.L3_loss != 0:
+                self.ProjectorHead_3d = ProjectorHead["3d"]
+                self.ProjectorHead_3u = ProjectorHead["3u"]
+            if self.L2_loss != 0:
+                self.ProjectorHead_2d = ProjectorHead["2d"]
+                self.ProjectorHead_2u = ProjectorHead["2u"]
+            if self.L1_loss != 0:
+                self.ProjectorHead_1d = ProjectorHead["1d"]
+                self.ProjectorHead_1u = ProjectorHead["1u"]
+            
+            
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -114,31 +122,32 @@ class FCN(nn.Module):
         #         result["aux"] = x
 
         # if self.ProjectorHead is not None:
-        if self.contrast:
-            L3d = features["L3d"]
-            L3d = self.ProjectorHead_3d(L3d)
-            L3d = F.normalize(L3d, p=2, dim=1)
-            L2d = features["L2d"]
-            L2d = self.ProjectorHead_2d(L2d)
-            L2d = F.normalize(L2d, p=2, dim=1)
-            L1d = features["L1d"]
-            L1d = self.ProjectorHead_1d(L1d)
-            L1d = F.normalize(L1d, p=2, dim=1)
-
-            L3u = classifer["L3u"]
-            L3u = self.ProjectorHead_3u(L3u)
-            L3u = F.normalize(L3u, p=2, dim=1)
-            L2u = classifer["L2u"]
-            L2u = self.ProjectorHead_2u(L2u)
-            L2u = F.normalize(L2u, p=2, dim=1)
-            L1u = classifer["L1u"]
-            L1u = self.ProjectorHead_1u(L1u)
-            L1u = F.normalize(L1u, p=2, dim=1)
-
-            result["L3"] = [L3d, L3u]
-            result["L2"] = [L2d, L2u]
-            result["L1"] = [L1d, L1u]
-                
+        if self.contrast != -1:
+            if self.L3_loss != 0:
+                L3d = features["L3d"]
+                L3d = self.ProjectorHead_3d(L3d)
+                L3d = F.normalize(L3d, p=2, dim=1)
+                L3u = classifer["L3u"]
+                L3u = self.ProjectorHead_3u(L3u)
+                L3u = F.normalize(L3u, p=2, dim=1)
+                result["L3"] = [L3d, L3u]
+            if self.L2_loss != 0:
+                L2u = classifer["L2u"]
+                L2u = self.ProjectorHead_2u(L2u)
+                L2u = F.normalize(L2u, p=2, dim=1)
+                L2d = features["L2d"]
+                L2d = self.ProjectorHead_2d(L2d)
+                L2d = F.normalize(L2d, p=2, dim=1)
+                result["L2"] = [L2d, L2u]
+            if self.L1_loss != 0:
+                L1d = features["L1d"]
+                L1d = self.ProjectorHead_1d(L1d)
+                L1d = F.normalize(L1d, p=2, dim=1)
+                L1u = classifer["L1u"]
+                L1u = self.ProjectorHead_1u(L1u)
+                L1u = F.normalize(L1u, p=2, dim=1)
+                result["L1"] = [L1d, L1u]
+                           
         return result
 
 class DoubleConv(nn.Sequential):
@@ -246,15 +255,23 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = FCNHead(out_inplanes, num_classes)
 
-    prejector = None
-    if args.contrast:
-        Projector_3d = ProjectorHead(out_inplanes//2, project_dim)
-        Projector_3u = ProjectorHead(out_inplanes//2, project_dim)
-        Projector_2d = ProjectorHead(out_inplanes//4, project_dim)
-        Projector_2u = ProjectorHead(out_inplanes//4, project_dim)
-        Projector_1d = ProjectorHead(out_inplanes//8, project_dim)
-        Projector_1u = ProjectorHead(out_inplanes//8, project_dim)
-        prejector = [Projector_1d, Projector_1u, Projector_2d, Projector_2u, Projector_3d, Projector_3u]
+    prejector = OrderedDict()
+    if args.contrast != -1:
+        if args.L3_loss != 0:
+            Projector_3d = ProjectorHead(out_inplanes//2, project_dim)
+            Projector_3u = ProjectorHead(out_inplanes//2, project_dim)
+            prejector["3d"] = Projector_3d
+            prejector["3u"] = Projector_3u
+        if args.L2_loss != 0:
+            Projector_2d = ProjectorHead(out_inplanes//4, project_dim)
+            Projector_2u = ProjectorHead(out_inplanes//4, project_dim)
+            prejector["2d"] = Projector_2d
+            prejector["2u"] = Projector_2u
+        if args.L1_loss != 0:
+            Projector_1d = ProjectorHead(out_inplanes//8, project_dim)
+            Projector_1u = ProjectorHead(out_inplanes//8, project_dim)
+            prejector["1d"] = Projector_1d
+            prejector["1u"] = Projector_1u
 
     model = FCN(args, backbone, classifier, aux_classifier, prejector)
 
