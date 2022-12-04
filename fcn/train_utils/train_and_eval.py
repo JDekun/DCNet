@@ -42,8 +42,8 @@ def criterion(args, inputs, target, epoch):
                 elif loss_name == "inter":
                     loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
                 elif loss_name == "double":
-                    loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
-                    # loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    # loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
                 else:
                     print("the name of loss is None !!!")
 
