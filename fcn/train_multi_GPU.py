@@ -12,7 +12,7 @@ import numpy as np
 import random
 
 # 远程调试
-# import debugpy; debugpy.connect(('10.59.139.1', 5678))
+# import debugpy; debugpy.connect(('10.59.139.2', 5678))
 
 
 import wandb
