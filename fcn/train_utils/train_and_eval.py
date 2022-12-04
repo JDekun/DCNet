@@ -6,11 +6,13 @@ from train_utils.intra_contrastive_loss import  IntraPixelContrastLoss
 from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
+from train_utils.double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
 
 
 def criterion(args, inputs, target, epoch):
     losses = {}
     loss_name = args.loss_name
+    epochs = args.epochs
     
     if args.model_name == "fcn_resnet50" or args.contrast == -1:
         for name, x in inputs.items():
@@ -43,7 +45,8 @@ def criterion(args, inputs, target, epoch):
                     loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
                 elif loss_name == "double":
                     # loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
-                    loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    # loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    loss_contrast = EPOCHSELFPACEDoublePixelContrastLoss(epoch, epochs, proj_x, proj_y, target, predict)
                 else:
                     print("the name of loss is None !!!")
 
