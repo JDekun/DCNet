@@ -61,9 +61,9 @@ def Hard_anchor_sampling(X, Y, y_hat, y, ignore_label: int = 255, max_views: int
             else:
                 num_easy_keep = 0
                 if num_hard > n_view:
-                    num_hard_keep = n_view
+                    num_easy_keep = n_view
                 else:
-                    num_hard_keep = num_hard
+                    num_easy_keep = num_hard
 
             perm = torch.randperm(num_hard)
             hard_indices = hard_indices[perm[:num_hard_keep]]
@@ -71,12 +71,10 @@ def Hard_anchor_sampling(X, Y, y_hat, y, ignore_label: int = 255, max_views: int
             easy_indices = easy_indices[perm[:num_easy_keep]]
             indices = torch.cat((hard_indices, easy_indices), dim=0)
 
-            temp = indices.shape[0]
-            if temp != 0:
-                X_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
-                Y_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
-                y_[X_ptr] = cls_id
-                X_ptr += 1
+            X_[X_ptr, :, :] = X[ii, indices, :].squeeze(1)
+            Y_[X_ptr, :, :] = Y[ii, indices, :].squeeze(1)
+            y_[X_ptr] = cls_id
+            X_ptr += 1
 
     return X_, Y_, y_
 
