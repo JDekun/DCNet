@@ -71,6 +71,7 @@ def create_model(args):
 
     if pre_trained != "None":
         weights_dict = torch.load(f"{pre_trained}", map_location='cpu')
+        pre_trained = pre_trained.split("/")[-1]
             
         if num_classes != 21:
             # 官方提供的预训练权重是21类(包括背景)
@@ -79,7 +80,7 @@ def create_model(args):
                 if "classifier.4" in k:
                     del weights_dict[k]
 
-        if pre_trained == "fcn_resnet50_coco":
+        if pre_trained == "fcn_resnet50_coco.pth":
             for k in list(weights_dict.keys()):
                 if "classifier" in k:
                     del weights_dict[k]
@@ -116,7 +117,7 @@ def main(args):
 
     VOC_root = args.data_path
     # check voc root
-    if os.path.exists(os.path.join(VOC_root, "VOCdevkit")) is False:
+    if os.path.exists(os.path.join(VOC_root)) is False:
         raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(VOC_root))
 
     # load train data set
@@ -342,7 +343,7 @@ if __name__ == "__main__":
         description=__doc__)
 
     # 训练文件的根目录(VOCdevkit)
-    parser.add_argument('--data-path', default='../../../input/pascal', help='dataset')
+    parser.add_argument('--data_path', default='../../../input/pascal', help='dataset')
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
