@@ -115,10 +115,10 @@ def main(args):
             train_info = f"epoch,mean_loss,mIOU,acc_global,lr\n" 
             f.write(train_info)
 
-    VOC_root = "../../../input/" + args.data_path
+    args.data_path = "../../../input/" + args.data_path
     # check voc root
-    if os.path.exists(os.path.join(VOC_root)) is False:
-        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(VOC_root))
+    if os.path.exists(os.path.join(args.data_path)) is False:
+        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(args.data_path))
 
     # load train data set
     # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> train.txt
