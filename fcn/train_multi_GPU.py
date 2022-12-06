@@ -70,7 +70,7 @@ def create_model(args):
         raise ValueError("model_name are not present in model")
 
     if pre_trained != "None":
-        weights_dict = torch.load(f"{pre_trained}", map_location='cpu')
+        weights_dict = torch.load(f"../../../input/{pre_trained}", map_location='cpu')
         pre_trained = pre_trained.split("/")[-1]
             
         if num_classes != 21:
@@ -115,7 +115,7 @@ def main(args):
             train_info = f"epoch,mean_loss,mIOU,acc_global,lr\n" 
             f.write(train_info)
 
-    VOC_root = args.data_path
+    VOC_root = "../../../input/" + args.data_path
     # check voc root
     if os.path.exists(os.path.join(VOC_root)) is False:
         raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(VOC_root))
