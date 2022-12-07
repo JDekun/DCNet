@@ -3,8 +3,8 @@ fcn/__pycache__
 fcn/fcn_resnet50_coco.pth
 fcn/wandb
 fcn/pre_trained
-
-fcn_main/
+fcn/checkpoint
+fcn/results
 
 unet/multi_train
 unet/save_weights
@@ -12,7 +12,14 @@ unet/__pycache__
 unet/src/__pycache__
 unet/train_utils/__pycache__
 unet/output-before
+unet/wandb
+
+deeplab_v3/multi_train
+deeplab_v3/deeplabv3_resnet50_coco.pth
+
 
 *.swo
 *.swp
-*.pyc
+
+**/__pycache__
+

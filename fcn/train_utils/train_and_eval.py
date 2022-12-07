@@ -1,18 +1,70 @@
 import torch
 from torch import nn
 import train_utils.distributed_utils as utils
+import torch.nn.functional as F 
+from train_utils.intra_contrastive_loss import  IntraPixelContrastLoss
+from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
+from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
+from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
+from train_utils.double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
 
 
-def criterion(inputs, target):
+def criterion(args, inputs, target, epoch):
     losses = {}
-    for name, x in inputs.items():
-        # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
-        losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+    loss_name = args.loss_name
+    epochs = args.epochs
+    
+    if args.model_name == "fcn_resnet50" or args.contrast == -1:
+        for name, x in inputs.items():
+            # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
+            losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+        return losses['out']
+    else:
+        for name, x in inputs.items():
+            # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
+            if name == "out":
+                pred_y = x
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) 
+            else:
+                proj_x = x[0]
+                proj_y = x[1]
+
+                h, w = proj_y.shape[2], proj_y.shape[3]
+                pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
+                _, predict = torch.max(pred, 1)
+                
+                # # 每层的语义分割像素交叉熵损失
+                # h, w = target.size(1), target.size(2)
+                # pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
+                # loss = nn.functional.cross_entropy(pred, target, ignore_index=255)
+
+                # 层内对比损失
+                if loss_name == "intra":
+                    loss_contrast = IntraPixelContrastLoss(proj_y, target, predict)
+                elif loss_name == "inter":
+                    loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
+                elif loss_name == "double":
+                    # loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    # loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
+                    loss_contrast = EPOCHSELFPACEDoublePixelContrastLoss(epoch, epochs, proj_x, proj_y, target, predict)
+                else:
+                    print("the name of loss is None !!!")
+
+                if name == "L1":
+                    contrast_loss = args.L1_loss
+                elif name == "L2":
+                    contrast_loss = args.L2_loss
+                elif name == "L3":
+                    contrast_loss = args.L3_loss
+                losses[name] = loss_contrast * contrast_loss
 
     if len(losses) == 1:
         return losses['out']
-
-    return losses['out'] + 0.5 * losses['aux']
+    
+    if args.contrast > epoch:
+        return losses['out'] + 0 * losses['L3'] + 0 * losses['L2'] + 0 * losses['L1']
+    else:
+        return losses['out'] + losses['L3'] + losses['L2'] + losses['L1']
 
 
 def evaluate(model, data_loader, device, num_classes):
@@ -33,7 +85,7 @@ def evaluate(model, data_loader, device, num_classes):
     return confmat
 
 
-def train_one_epoch(model, optimizer, data_loader, device, epoch, lr_scheduler, print_freq=10, scaler=None):
+def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_scheduler, print_freq=10, scaler=None):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
@@ -43,7 +95,7 @@ def train_one_epoch(model, optimizer, data_loader, device, epoch, lr_scheduler, 
         image, target = image.to(device), target.to(device)
         with torch.cuda.amp.autocast(enabled=scaler is not None):
             output = model(image)
-            loss = criterion(output, target)
+            loss = criterion(args, output, target, epoch)
 
         optimizer.zero_grad()
         if scaler is not None:
