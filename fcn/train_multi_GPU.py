@@ -70,7 +70,7 @@ def create_model(args):
         raise ValueError("model_name are not present in model")
 
     if pre_trained != "None":
-        weights_dict = torch.load(f"../../../input/pre_trained/{pre_trained}", map_location='cpu')
+        weights_dict = torch.load(f"../../../input/{pre_trained}", map_location='cpu')
         pre_trained = pre_trained.split("/")[-1]
             
         if num_classes != 21:
