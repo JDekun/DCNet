@@ -243,6 +243,7 @@ def main(args):
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
     print(model)
+    best_IOU = 0
     print("Start training")
     start_time = time.time()
     for epoch in range(args.start_epoch, args.epochs):
@@ -253,6 +254,7 @@ def main(args):
 
         confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
         acc_global, acc, iu = confmat.compute()
+        IOU = iu.mean().item() * 100
         val_info = (
             'global correct: {:.1f}\n'
             'average row correct: {}\n'
@@ -261,13 +263,13 @@ def main(args):
                 acc_global.item() * 100,
                 ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
                 ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
-                iu.mean().item() * 100)
+                IOU)
         # val_info = str(confmat) # 修改展开了
         print(val_info)
 
         ##### wandb #####
         if args.wandb and (args.rank in [-1, 0]):
-            wandb.log({"mean_loss": mean_loss, "mIOU": iu.mean().item() * 100, "acc_global": acc_global, "lr": lr, "epoch": epoch})
+            wandb.log({"mean_loss": mean_loss, "mIOU": IOU, "acc_global": acc_global, "lr": lr, "epoch": epoch})
 
 
         # 只在主进程上进行写操作
@@ -275,7 +277,7 @@ def main(args):
             # write into txt
             with open(results_csv, "a") as f:
                 # 记录每个epoch对应的train_loss、lr以及验证集各指标
-                train_info = f"{epoch},{mean_loss},{iu.mean().item() * 100},{acc_global},{lr}\n" 
+                train_info = f"{epoch},{mean_loss},{IOU},{acc_global},{lr}\n" 
                 f.write(train_info)
           
         
@@ -291,7 +293,11 @@ def main(args):
             if args.amp:
                 save_file["scaler"] = scaler.state_dict()
             save_on_master(save_file,
-                            '{}/checkpoints/model_{}.pth'.format(args.checkpoint_dir, epoch))
+                            '{}/checkpoints/model_latest.pth'.format(args.checkpoint_dir))
+            if IOU > best_IOU:
+                best_IOU = IOU
+                save_on_master(save_file,
+                            '{}/checkpoints/model_best.pth'.format(args.checkpoint_dir))
                 
 
     total_time = time.time() - start_time
