@@ -267,11 +267,6 @@ def main(args):
         # val_info = str(confmat) # 修改展开了
         print(val_info)
 
-        ##### wandb #####
-        if args.wandb and (args.rank in [-1, 0]):
-            wandb.log({"mean_loss": mean_loss, "mIOU": IOU, "acc_global": acc_global, "lr": lr, "epoch": epoch})
-
-
         # 只在主进程上进行写操作
         if args.rank in [-1, 0]:
             # write into txt
@@ -298,7 +293,11 @@ def main(args):
                 best_IOU = IOU
                 save_on_master(save_file,
                             '{}/checkpoints/model_best.pth'.format(args.checkpoint_dir))
-                
+
+        ##### wandb #####
+        if args.wandb and (args.rank in [-1, 0]):
+            wandb.log({"mean_loss": mean_loss, "mIOU": IOU, "best_IOU": best_IOU, "acc_global": acc_global, "lr": lr, "epoch": epoch})
+      
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
