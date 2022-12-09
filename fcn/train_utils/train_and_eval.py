@@ -7,6 +7,7 @@ from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
+from contextlib import nullcontext
 
 
 def criterion(args, inputs, target, epoch):
@@ -91,25 +92,34 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
 
+    i = 1
+    K = args.GAcc
+    optimizer.zero_grad()
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
         image, target = image.to(device), target.to(device)
-        with torch.cuda.amp.autocast(enabled=scaler is not None):
-            output = model(image)
-            loss = criterion(args, output, target, epoch)
-
-        optimizer.zero_grad()
-        if scaler is not None:
-            scaler.scale(loss).backward()
-            scaler.step(optimizer)
-            scaler.update()
-        else:
-            loss.backward()
-            optimizer.step()
+        my_context = model.no_sync if args.local_rank != -1 and i % K != 0 else nullcontext
+        with my_context():
+            with torch.cuda.amp.autocast(enabled=scaler is not None):
+                output = model(image)
+                loss = criterion(args, output, target, epoch) / K
+            if scaler is not None:
+                scaler.scale(loss).backward()
+            else:
+                loss.backward()
+        if i % K == 0:
+            if scaler is not None:
+                scaler.step(optimizer)
+                scaler.update()
+                optimizer.zero_grad()
+            else:
+                optimizer.step()
+                optimizer.zero_grad()
 
         lr_scheduler.step()
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss.item(), lr=lr)
+        i += 1
 
     return metric_logger.meters["loss"].global_avg, lr
 

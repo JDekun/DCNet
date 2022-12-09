@@ -419,6 +419,7 @@ if __name__ == "__main__":
     parser.add_argument("--L3_loss", default=0, type=float, help="L3 loss")
     parser.add_argument("--L2_loss", default=0, type=float, help="L2 loss")
     parser.add_argument("--L1_loss", default=0, type=float, help="L1 loss")
+    parser.add_argument("--GAcc", default=2, type=int, help="Gradient Accumulation")
 
     args = parser.parse_args()
 
