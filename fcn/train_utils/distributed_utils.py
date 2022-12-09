@@ -108,8 +108,7 @@ class ConfusionMatrix(object):
         if not torch.distributed.is_initialized():
             return
         torch.distributed.barrier()
-        # torch.distributed.all_reduce(self.mat)
-        torch.distributed.all_gather(self.mat)
+        torch.distributed.all_reduce(self.mat)
 
     def __str__(self):
         acc_global, acc, iu = self.compute()
