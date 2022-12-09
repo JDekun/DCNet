@@ -97,7 +97,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     optimizer.zero_grad()
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
         image, target = image.to(device), target.to(device)
-        my_context = model.no_sync if args.local_rank != -1 and i % K != 0 else nullcontext
+        my_context = model.no_sync if args.rank != -1 and i % K != 0 else nullcontext
         with my_context():
             with torch.cuda.amp.autocast(enabled=scaler is not None):
                 output = model(image)
@@ -110,12 +110,11 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
             if scaler is not None:
                 scaler.step(optimizer)
                 scaler.update()
-                optimizer.zero_grad()
             else:
                 optimizer.step()
-                optimizer.zero_grad()
 
-        lr_scheduler.step()
+            lr_scheduler.step()
+            optimizer.zero_grad()
 
         lr = optimizer.param_groups[0]["lr"]
         metric_logger.update(loss=loss.item(), lr=lr)
