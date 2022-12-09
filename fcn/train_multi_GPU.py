@@ -205,9 +205,10 @@ def main(args):
         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     scaler = torch.cuda.amp.GradScaler() if args.amp else None
-
+    
+    K = args.GAcc
     # 创建学习率更新策略，这里是每个step更新一次(不是每个epoch)
-    lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader), args.epochs, warmup=True)
+    lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader)//K, args.epochs, warmup=True)
 
     # 如果传入resume参数，即上次训练的权重地址，则接着上次的参数训练
     if args.resume:
