@@ -92,7 +92,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
     header = 'Epoch: [{}]'.format(epoch)
 
-    i = 1
+    i = 0
     K = args.GAcc
     optimizer.zero_grad()
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
@@ -101,7 +101,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
         with my_context():
             with torch.cuda.amp.autocast(enabled=scaler is not None):
                 output = model(image)
-                loss = criterion(args, output, target, epoch) / K
+                loss = criterion(args, output, target, epoch)
             if scaler is not None:
                 scaler.scale(loss).backward()
             else:
