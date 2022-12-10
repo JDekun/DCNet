@@ -120,33 +120,6 @@ def Contrastive(feats_, feats_y_, labels_, temperature: float = 0.1, base_temper
     return loss
 
 
-
-
-
-    # batch_size = feats_.shape[0] * feats_.shape[1]
-
-    
-    # out_1 = feats_.contiguous().view([-1, feats_.shape[-1]])
-    # out_2 = feats_y_.contiguous().view([-1, feats_y_.shape[-1]])
-    # # [2*B*H*W, D]
-    # out = torch.cat([out_1, out_2], dim=0)
-    # # [2*B*H*W, 2*B*H*W]
-    # sim_matrix = torch.exp(torch.mm(out, out.t().contiguous()) / temperature)
-    # mask = (torch.ones_like(sim_matrix) - torch.eye(2 * batch_size, device=sim_matrix.device)).bool()
-    # # [2*B*H*W, 2*B*H*W-1]
-    # sim_matrix = sim_matrix.masked_select(mask).view(2 * batch_size, -1)
-
-    # # compute loss
-    # pos_sim = torch.sum(out_1 * out_2, dim=-1) / temperature
-    # # [2*B]
-    # pos_sim = torch.cat([pos_sim, pos_sim], dim=0)
-    # loss = (pos_sim - torch.log(sim_matrix.sum(dim=-1))).mean()
-
-    # loss = - (temperature / base_temperature) * loss
-    # loss = loss.mean()
-
-    # return loss
-
 def SELFPACEDoublePixelContrastLoss(feats, feats_y=None, labels=None, predict=None):
     labels = labels.unsqueeze(1).float().clone()
     labels = torch.nn.functional.interpolate(labels,
