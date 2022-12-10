@@ -179,7 +179,6 @@ def Random_sampling(X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50
     X_ptr = 0
     for ii in range(batch_size):
         this_y_hat = y_hat[ii]
-        this_y = y[ii]
         this_classes = classes[ii]
 
         for cls_id in this_classes:
@@ -191,12 +190,10 @@ def Random_sampling(X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50
             hard_indices = hard_indices[perm[:n_view]]
             indices = hard_indices
 
-            temp = indices.shape[0]
-            if temp != 0:
-                X_[X_ptr, :, :] = X[ii, indices, :].squeeze(1)
-                Y_[X_ptr, :, :] = Y[ii, indices, :].squeeze(1)
-                y_[X_ptr] = cls_id
-                X_ptr += 1
+            X_[X_ptr, :, :] = X[ii, indices, :].squeeze(1)
+            Y_[X_ptr, :, :] = Y[ii, indices, :].squeeze(1)
+            y_[X_ptr] = cls_id
+            X_ptr += 1
 
     return X_, Y_, y_
 
