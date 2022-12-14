@@ -206,10 +206,13 @@ def Contrastive(feats_, feats_y_, labels_, temperature: float = 0.1, base_temper
     contrast_count = n_view * 2
     contrast_feature_x = torch.cat(torch.unbind(feats_, dim=1), dim=0)
     contrast_feature_y = torch.cat(torch.unbind(feats_y_, dim=1), dim=0)
-    contrast_feature = torch.cat([contrast_feature_x, contrast_feature_y], dim=0)
+    contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
 
-    anchor_feature = contrast_feature
-    anchor_count = contrast_count
+    anchor_feature = contrast_feature_y
+    anchor_count = n_view
+
+    # anchor_feature = contrast_feature
+    # anchor_count = contrast_count
 
     anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)),
                                     temperature)
@@ -256,8 +259,8 @@ def EPOCHSELFPACEDoublePixelContrastLoss(epoch, epochs, feats, feats_y=None, lab
     feats_y = feats_y.permute(0, 2, 3, 1)
     feats_y = feats_y.contiguous().view(feats_y.shape[0], -1, feats_y.shape[-1])
 
-    # feats_, feats_y_, labels_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict)
-    feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
+    feats_, feats_y_, labels_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict)
+    # feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
 
     loss = Contrastive(feats_, feats_y_, labels_)
     return loss
