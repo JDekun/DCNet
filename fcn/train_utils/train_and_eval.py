@@ -62,11 +62,15 @@ def criterion(args, inputs, target, epoch):
     if len(losses) == 1:
         return losses['out']
     
-    if args.contrast > epoch:
-        return losses['out'] + 0 * losses['L3'] + 0 * losses['L2'] + 0 * losses['L1']
-    else:
-        return losses['out'] + losses['L3'] + losses['L2'] + losses['L1']
+    loss = losses['out']
 
+    for name, x in losses.items():
+        if name != "out" and args.contrast > epoch:
+            loss += 0 * x
+        elif name != "out":
+            loss += x
+    
+    return loss
 
 def evaluate(model, data_loader, device, num_classes):
     model.eval()
