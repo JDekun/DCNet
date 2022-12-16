@@ -199,11 +199,11 @@ class FCN(nn.Module):
                 L3u = classifer["L3u"]
                 L3u = self.ProjectorHead_3u(L3u)
                 L3u = F.normalize(L3u, p=2, dim=1)
-                if self.r:
-                    queue = self.queue3
-                    result["L3"] = [L3d, L3u, queue]
-                else:
-                    result["L3"] = [L3d, L3u]
+                # if self.r:
+                #     queue = self.queue3
+                #     result["L3"] = [L3d, L3u, queue]
+                # else:
+                result["L3"] = [L3d, L3u]
             if self.L2_loss != 0:
                 L2u = classifer["L2u"]
                 L2u = self.ProjectorHead_2u(L2u)
@@ -211,11 +211,11 @@ class FCN(nn.Module):
                 L2d = features["L2d"]
                 L2d = self.ProjectorHead_2d(L2d)
                 L2d = F.normalize(L2d, p=2, dim=1)
-                if self.r:
-                    queue = self.queue2
-                    result["L2"] = [L2d, L2u, queue]
-                else:
-                    result["L2"] = [L2d, L2u]
+                # if self.r:
+                #     queue = self.queue2
+                #     result["L2"] = [L2d, L2u, queue]
+                # else:
+                result["L2"] = [L2d, L2u]
             if self.L1_loss != 0:
                 L1d = features["L1d"]
                 L1d = self.ProjectorHead_1d(L1d)
@@ -223,12 +223,11 @@ class FCN(nn.Module):
                 L1u = classifer["L1u"]
                 L1u = self.ProjectorHead_1u(L1u)
                 L1u = F.normalize(L1u, p=2, dim=1)
+                # if self.r:
+                #     queue = self.queue1
+                #     result["L1"] = [L1d, L1u, queue]
+                # else:
                 result["L1"] = [L1d, L1u]
-                if self.r:
-                    queue = self.queue1
-                    result["L1"] = [L1d, L1u, queue]
-                else:
-                    result["L1"] = [L1d, L1u]
                            
         return result
 

@@ -106,6 +106,16 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
         with my_context():
             with torch.cuda.amp.autocast(enabled=scaler is not None):
                 output = model(image)
+                if args.contrast != -1 and args.memory_size >0:
+                    if args.L3_loss != 0:
+                        queue3 = model.module.queue3
+                        output["L3"].append(queue3)
+                    if args.L2_loss != 0:
+                        queue2 = model.module.queue2
+                        output["L2"].append(queue2)
+                    if args.L1_loss != 0:
+                        queue1 = model.module.queue1
+                        output["L1"].append(queue1)
                 loss = criterion(args, output, target, epoch)
             if scaler is not None:
                 scaler.scale(loss).backward()
