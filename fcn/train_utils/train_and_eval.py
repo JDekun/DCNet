@@ -105,7 +105,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
         my_context = model.no_sync if args.rank != -1 and i % K != 0 else nullcontext
         with my_context():
             with torch.cuda.amp.autocast(enabled=scaler is not None):
-                output = model(image)
+                output = model(image, target)
                 if args.contrast != -1 and args.memory_size >0:
                     if args.L3_loss != 0:
                         result3 = OrderedDict()

@@ -161,7 +161,7 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=args.ddp)
         model_without_ddp = model.module
 
     params_to_optimize = [
@@ -425,6 +425,7 @@ if __name__ == "__main__":
     parser.add_argument("--proj_dim", default=128, type=int, help="")
     parser.add_argument("--network_stride", default=8, type=int, help="")
     parser.add_argument("--pixel_update_freq", default=10, type=int, help="")
+    parser.add_argument('--ddp', default=False, type=str2bool, help='')
 
     args = parser.parse_args()
 

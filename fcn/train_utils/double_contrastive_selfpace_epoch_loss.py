@@ -326,11 +326,11 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
 
     queue=None
     if args.memory_size:
-        queue = x[2]
+        queue = x[5]
         # 更新队列
-        feats_que = feats.detach()
-        feats_y_que = feats_y.detach()
-        labels_que = labels.detach()
+        feats_que = x[2]
+        feats_y_que = x[3]
+        labels_que = x[4]
         dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
                             encode_queue=queue["encode_queue"],
                             encode_queue_ptr=queue["encode_queue_ptr"],

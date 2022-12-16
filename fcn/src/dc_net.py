@@ -140,19 +140,9 @@ class FCN(nn.Module):
                     self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
                     self.register_buffer("decode1_queue", torch.randn(num_classes, self.r, dim))
                     self.decode1_queue = nn.functional.normalize(self.decode1_queue, p=2, dim=2)
-                    self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))             
 
-            # if self.r:
-            #     queue = Queue()
-                # self.register_buffer("encode_queue", torch.randn(num_classes, self.r, dim))
-                # self.segment_queue = nn.functional.normalize(self.encode_queue, p=2, dim=2)
-                # self.register_buffer("encode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-
-                # self.register_buffer("decode_queue", torch.randn(num_classes, self.r, dim))
-                # self.pixel_queue = nn.functional.normalize(self.decode_queue, p=2, dim=2)
-                # self.register_buffer("decode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))               
-
-    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor, target) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
         # contract: features is a dict of tensors
         features = self.backbone(x)
@@ -181,11 +171,7 @@ class FCN(nn.Module):
                 L3u = classifer["L3u"]
                 L3u = self.ProjectorHead_3u(L3u)
                 L3u = F.normalize(L3u, p=2, dim=1)
-                # if self.r:
-                #     queue = self.queue3
-                #     result["L3"] = [L3d, L3u, queue]
-                # else:
-                result["L3"] = [L3d, L3u]
+                result["L3"] = [L3d, L3u, L3d.detach(), L3u.detach(), target.detach()]
             if self.L2_loss != 0:
                 L2u = classifer["L2u"]
                 L2u = self.ProjectorHead_2u(L2u)
@@ -193,11 +179,7 @@ class FCN(nn.Module):
                 L2d = features["L2d"]
                 L2d = self.ProjectorHead_2d(L2d)
                 L2d = F.normalize(L2d, p=2, dim=1)
-                # if self.r:
-                #     queue = self.queue2
-                #     result["L2"] = [L2d, L2u, queue]
-                # else:
-                result["L2"] = [L2d, L2u]
+                result["L2"] = [L2d, L2u, L2d.detach(), L2u.detach(), target.detach()]
             if self.L1_loss != 0:
                 L1d = features["L1d"]
                 L1d = self.ProjectorHead_1d(L1d)
@@ -205,11 +187,7 @@ class FCN(nn.Module):
                 L1u = classifer["L1u"]
                 L1u = self.ProjectorHead_1u(L1u)
                 L1u = F.normalize(L1u, p=2, dim=1)
-                # if self.r:
-                #     queue = self.queue1
-                #     result["L1"] = [L1d, L1u, queue]
-                # else:
-                result["L1"] = [L1d, L1u]
+                result["L1"] = [L1d, L1u, L1d.detach(), L1u.detach(), target.detach()]
                            
         return result
 
