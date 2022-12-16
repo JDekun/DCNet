@@ -60,24 +60,6 @@ class IntermediateLayerGetter(nn.ModuleDict):
                 out[out_name] = x
         return out
 
-class Queue(nn.Module):
-    def __init__(self,args,name):
-        super(Queue, self).__init__()
-        self.m = 0.999
-        result = OrderedDict()
-
-        num_classes = args.num_classes + 1
-        dim = args.proj_dim
-        self.r = args.memory_size
-  
-        result['encode_queue'] = nn.functional.normalize(self.register_buffer(f"encode{name}_queue", torch.randn(num_classes, self.r, dim)), p=2, dim=2)
-        result['encode_queue_ptr'] = self.register_buffer("encode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-
-        result['decode_queue'] =  nn.functional.normalize(self.register_buffer(f"decode{name}_queue", torch.randn(num_classes, self.r, dim)), p=2, dim=2)
-        result['decode_queue_ptr'] = self.register_buffer("decode_queue_ptr", torch.zeros(num_classes, dtype=torch.long)) 
-
-        return result
-
 class FCN(nn.Module):
     """
     Implements a Fully-Convolutional Network for semantic segmentation.
