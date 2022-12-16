@@ -280,7 +280,7 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
         this_feat_y = key_y[bs].contiguous().view(feat_dim, -1)
         this_label = labels[bs].contiguous().view(-1)
         this_label_ids = torch.unique(this_label)
-        this_label_ids = [x for x in this_label_ids if x > 0]
+        this_label_ids = [x for x in this_label_ids if x > 0 and x != 255]
 
         for lb in this_label_ids:
             idxs = (this_label == lb).nonzero()
@@ -326,7 +326,7 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
 
     queue=None
     if args.memory_size:
-        queue = x[3]
+        queue = x[2]
         # 更新队列
         feats_que = feats.detach()
         feats_y_que = feats_y.detach()

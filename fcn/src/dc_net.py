@@ -107,25 +107,58 @@ class FCN(nn.Module):
 
         # self.m = 0.999
         self.r = args.memory_size
-        # num_classes = args.num_classes + 1
-        # dim = args.proj_dim
+        num_classes = args.num_classes + 1
+        dim = args.proj_dim
 
         if self.contrast != -1:
             if self.L3_loss != 0:
                 self.ProjectorHead_3d = ProjectorHead["3d"]
                 self.ProjectorHead_3u = ProjectorHead["3u"]
                 if self.r:
-                    self.queue3 = Queue(args, name = "L3")
+                    result3 = OrderedDict()
+                    self.register_buffer("encode3_queue", torch.randn(num_classes, self.r, dim))
+                    self.encode3_queue = nn.functional.normalize(self.encode3_queue, p=2, dim=2)
+                    self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode3_queue", torch.randn(num_classes, self.r, dim))
+                    self.decode3_queue = nn.functional.normalize(self.decode3_queue, p=2, dim=2)
+                    self.register_buffer("decode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    result3['encode_queue'] = self.encode3_queue
+                    result3['encode_queue_ptr'] = self.encode3_queue_ptr
+                    result3['decode_queue'] = self.decode3_queue
+                    result3['decode_queue_ptr'] = self.decode3_queue_ptr
+                    self.queue3 = result3
             if self.L2_loss != 0:
                 self.ProjectorHead_2d = ProjectorHead["2d"]
                 self.ProjectorHead_2u = ProjectorHead["2u"]
                 if self.r:
-                    self.queue2 = Queue(args, name = "L2")
+                    result2 = OrderedDict()
+                    self.register_buffer("encode2_queue", torch.randn(num_classes, self.r, dim))
+                    self.encode2_queue = nn.functional.normalize(self.encode2_queue, p=2, dim=2)
+                    self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode2_queue", torch.randn(num_classes, self.r, dim))
+                    self.decode2_queue = nn.functional.normalize(self.decode2_queue, p=2, dim=2)
+                    self.register_buffer("decode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    result2['encode_queue'] = self.encode2_queue
+                    result2['encode_queue_ptr'] = self.encode2_queue_ptr
+                    result2['decode_queue'] = self.decode2_queue
+                    result2['decode_queue_ptr'] = self.decode2_queue_ptr
+                    self.queue2 = result2
             if self.L1_loss != 0:
                 self.ProjectorHead_1d = ProjectorHead["1d"]
                 self.ProjectorHead_1u = ProjectorHead["1u"]
                 if self.r:
-                    self.queue1 = Queue(args, name = "L1")
+                    result1 = OrderedDict()
+                    self.register_buffer("encode1_queue", torch.randn(num_classes, self.r, dim))
+                    self.encode1_queue = nn.functional.normalize(self.encode1_queue, p=2, dim=2)
+                    self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode1_queue", torch.randn(num_classes, self.r, dim))
+                    self.decode1_queue = nn.functional.normalize(self.decode1_queue, p=2, dim=2)
+                    self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    result1['encode_queue'] = self.encode1_queue
+                    result1['encode_queue_ptr'] = self.encode1_queue_ptr
+                    result1['decode_queue'] = self.decode1_queue
+                    result1['decode_queue_ptr'] = self.decode1_queue_ptr
+                    self.queue1 = result1
 
             # if self.r:
             #     queue = Queue()
