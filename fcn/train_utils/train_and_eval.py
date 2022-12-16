@@ -8,7 +8,7 @@ from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
 from contextlib import nullcontext
-
+from collections import OrderedDict
 
 def criterion(args, inputs, target, epoch):
     losses = {}
@@ -108,14 +108,26 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
                 output = model(image)
                 if args.contrast != -1 and args.memory_size >0:
                     if args.L3_loss != 0:
-                        queue3 = model.module.queue3
-                        output["L3"].append(queue3)
+                        result3 = OrderedDict()
+                        result3['encode_queue'] = model.module.encode3_queue
+                        result3['encode_queue_ptr'] = model.module.encode3_queue_ptr
+                        result3['decode_queue'] = model.module.decode3_queue
+                        result3['decode_queue_ptr'] = model.module.decode3_queue_ptr
+                        output["L3"].append(result3)
                     if args.L2_loss != 0:
-                        queue2 = model.module.queue2
-                        output["L2"].append(queue2)
+                        result2 = OrderedDict()
+                        result2['encode_queue'] = model.module.encode2_queue
+                        result2['encode_queue_ptr'] = model.module.encode2_queue_ptr
+                        result2['decode_queue'] = model.module.decode2_queue
+                        result2['decode_queue_ptr'] = model.module.decode2_queue_ptr
+                        output["L2"].append(result2)
                     if args.L1_loss != 0:
-                        queue1 = model.module.queue1
-                        output["L1"].append(queue1)
+                        result1 = OrderedDict()
+                        result1['encode_queue'] = model.module.encode1_queue
+                        result1['encode_queue_ptr'] = model.module.encode1_queue_ptr
+                        result1['decode_queue'] = model.module.decode1_queue
+                        result1['decode_queue_ptr'] = model.module.decode1_queue_ptr
+                        output["L1"].append(result1)
                 loss = criterion(args, output, target, epoch)
             if scaler is not None:
                 scaler.scale(loss).backward()
