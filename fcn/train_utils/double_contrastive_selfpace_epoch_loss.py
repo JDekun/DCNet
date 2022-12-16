@@ -273,7 +273,7 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
     batch_size = keys.shape[0]
     feat_dim = keys.shape[1]
 
-    # labels = labels[:, ::args.network_stride, ::args.network_stride]
+    labels = labels[:, ::args.network_stride, ::args.network_stride]
 
     for bs in range(batch_size):
         this_feat = keys[bs].contiguous().view(feat_dim, -1)
