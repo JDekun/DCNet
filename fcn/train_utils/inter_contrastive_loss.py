@@ -89,7 +89,9 @@ def Contrastive(feats_, feats_y_, labels_, temperature: float = 0.1, base_temper
 
     return loss
 
-def InterPixelContrastLoss(feats, feats_y=None, labels=None, predict=None):
+def InterPixelContrastLoss(x, labels=None, predict=None):
+    feats = x[0]
+    feats_y = x[1]
     labels = labels.unsqueeze(1).float().clone()
     labels = torch.nn.functional.interpolate(labels,
                                                 (feats.shape[2], feats.shape[3]), mode='nearest')

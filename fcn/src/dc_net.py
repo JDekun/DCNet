@@ -60,6 +60,23 @@ class IntermediateLayerGetter(nn.ModuleDict):
                 out[out_name] = x
         return out
 
+class Queue(nn.Module):
+    def __init__(self,args,name):
+        super(Queue, self).__init__()
+        self.m = 0.999
+        result = OrderedDict()
+
+        num_classes = args.num_classes + 1
+        dim = args.proj_dim
+        self.r = args.memory_size
+  
+        result['encode_queue'] = nn.functional.normalize(self.register_buffer(f"encode{name}_queue", torch.randn(num_classes, self.r, dim)), p=2, dim=2)
+        result['encode_queue_ptr'] = self.register_buffer("encode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+
+        result['decode_queue'] =  nn.functional.normalize(self.register_buffer(f"decode{name}_queue", torch.randn(num_classes, self.r, dim)), p=2, dim=2)
+        result['decode_queue_ptr'] = self.register_buffer("decode_queue_ptr", torch.zeros(num_classes, dtype=torch.long)) 
+
+        return result
 
 class FCN(nn.Module):
     """
@@ -88,18 +105,37 @@ class FCN(nn.Module):
         self.classifier = classifier
         self.aux_classifier = aux_classifier
 
+        # self.m = 0.999
+        self.r = args.memory_size
+        # num_classes = args.num_classes + 1
+        # dim = args.proj_dim
+
         if self.contrast != -1:
             if self.L3_loss != 0:
                 self.ProjectorHead_3d = ProjectorHead["3d"]
                 self.ProjectorHead_3u = ProjectorHead["3u"]
+                if self.r:
+                    self.queue3 = Queue(args, name = "L3")
             if self.L2_loss != 0:
                 self.ProjectorHead_2d = ProjectorHead["2d"]
                 self.ProjectorHead_2u = ProjectorHead["2u"]
+                if self.r:
+                    self.queue2 = Queue(args, name = "L2")
             if self.L1_loss != 0:
                 self.ProjectorHead_1d = ProjectorHead["1d"]
                 self.ProjectorHead_1u = ProjectorHead["1u"]
-            
-            
+                if self.r:
+                    self.queue1 = Queue(args, name = "L1")
+
+            # if self.r:
+            #     queue = Queue()
+                # self.register_buffer("encode_queue", torch.randn(num_classes, self.r, dim))
+                # self.segment_queue = nn.functional.normalize(self.encode_queue, p=2, dim=2)
+                # self.register_buffer("encode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+
+                # self.register_buffer("decode_queue", torch.randn(num_classes, self.r, dim))
+                # self.pixel_queue = nn.functional.normalize(self.decode_queue, p=2, dim=2)
+                # self.register_buffer("decode_queue_ptr", torch.zeros(num_classes, dtype=torch.long))               
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -130,7 +166,11 @@ class FCN(nn.Module):
                 L3u = classifer["L3u"]
                 L3u = self.ProjectorHead_3u(L3u)
                 L3u = F.normalize(L3u, p=2, dim=1)
-                result["L3"] = [L3d, L3u]
+                if self.r:
+                    queue = self.queue3
+                    result["L3"] = [L3d, L3u, queue]
+                else:
+                    result["L3"] = [L3d, L3u]
             if self.L2_loss != 0:
                 L2u = classifer["L2u"]
                 L2u = self.ProjectorHead_2u(L2u)
@@ -138,7 +178,11 @@ class FCN(nn.Module):
                 L2d = features["L2d"]
                 L2d = self.ProjectorHead_2d(L2d)
                 L2d = F.normalize(L2d, p=2, dim=1)
-                result["L2"] = [L2d, L2u]
+                if self.r:
+                    queue = self.queue2
+                    result["L2"] = [L2d, L2u, queue]
+                else:
+                    result["L2"] = [L2d, L2u]
             if self.L1_loss != 0:
                 L1d = features["L1d"]
                 L1d = self.ProjectorHead_1d(L1d)
@@ -147,6 +191,11 @@ class FCN(nn.Module):
                 L1u = self.ProjectorHead_1u(L1u)
                 L1u = F.normalize(L1u, p=2, dim=1)
                 result["L1"] = [L1d, L1u]
+                if self.r:
+                    queue = self.queue1
+                    result["L1"] = [L1d, L1u, queue]
+                else:
+                    result["L1"] = [L1d, L1u]
                            
         return result
 

@@ -27,8 +27,9 @@ def criterion(args, inputs, target, epoch):
                 pred_y = x
                 losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) 
             else:
-                proj_x = x[0]
+                # proj_x = x[0]
                 proj_y = x[1]
+                
 
                 h, w = proj_y.shape[2], proj_y.shape[3]
                 pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
@@ -41,13 +42,13 @@ def criterion(args, inputs, target, epoch):
 
                 # 层内对比损失
                 if loss_name == "intra":
-                    loss_contrast = IntraPixelContrastLoss(proj_y, target, predict)
+                    loss_contrast = IntraPixelContrastLoss(x, target, predict)
                 elif loss_name == "inter":
-                    loss_contrast = InterPixelContrastLoss(proj_x, proj_y, target, predict)
+                    loss_contrast = InterPixelContrastLoss(x, target, predict)
                 elif loss_name == "double":
-                    # loss_contrast = DoublePixelContrastLoss(proj_x, proj_y, target, predict)
-                    # loss_contrast = SELFPACEDoublePixelContrastLoss(proj_x, proj_y, target, predict)
-                    loss_contrast = EPOCHSELFPACEDoublePixelContrastLoss(epoch, epochs, proj_x, proj_y, target, predict)
+                    # loss_contrast = DoublePixelContrastLoss(x, target, predict)
+                    # loss_contrast = SELFPACEDoublePixelContrastLoss(x, target, predict)
+                    loss_contrast = EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, target, predict)
                 else:
                     print("the name of loss is None !!!")
 
