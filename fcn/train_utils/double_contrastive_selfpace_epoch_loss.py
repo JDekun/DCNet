@@ -292,8 +292,8 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         else:
             decode_queue = None
 
-    if encode_queue is not None and decode_queue is not None:
-        queue = torch.cat((encode_queue, decode_queue), dim=1)
+        if encode_queue is not None and decode_queue is not None:
+            queue = torch.cat((encode_queue, decode_queue), dim=1)
 
     batch_size = feats.shape[0]
 

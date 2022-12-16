@@ -107,21 +107,17 @@ class FCN(nn.Module):
                 self.ProjectorHead_2d = ProjectorHead["2d"]
                 self.ProjectorHead_2u = ProjectorHead["2u"]
                 if self.r:             
-                    self.register_buffer("encode2_queue", torch.randn(num_classes, self.r, dim))
-                    self.encode2_queue = nn.functional.normalize(self.encode2_queue, p=2, dim=2)
+                    self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                    self.register_buffer("decode2_queue", torch.randn(num_classes, self.r, dim))
-                    self.decode2_queue = nn.functional.normalize(self.decode2_queue, p=2, dim=2)
+                    self.register_buffer("decode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("decode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
             if self.L1_loss != 0:
                 self.ProjectorHead_1d = ProjectorHead["1d"]
                 self.ProjectorHead_1u = ProjectorHead["1u"]
                 if self.r:                  
-                    self.register_buffer("encode1_queue", torch.randn(num_classes, self.r, dim))
-                    self.encode1_queue = nn.functional.normalize(self.encode1_queue, p=2, dim=2)
+                    self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                    self.register_buffer("decode1_queue", torch.randn(num_classes, self.r, dim))
-                    self.decode1_queue = nn.functional.normalize(self.decode1_queue, p=2, dim=2)
+                    self.register_buffer("decode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))             
 
     def forward(self, x: Tensor, target=None, is_eval=False) -> Dict[str, Tensor]:
