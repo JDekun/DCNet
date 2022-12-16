@@ -124,7 +124,7 @@ class FCN(nn.Module):
                     self.decode1_queue = nn.functional.normalize(self.decode1_queue, p=2, dim=2)
                     self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))             
 
-    def forward(self, x: Tensor, target) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor, target=None, is_eval=False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
         # contract: features is a dict of tensors
         features = self.backbone(x)
@@ -145,7 +145,7 @@ class FCN(nn.Module):
         #         result["aux"] = x
 
         # if self.ProjectorHead is not None:
-        if self.contrast != -1:
+        if self.contrast != -1 and is_eval == False:
             if self.L3_loss != 0:
                 L3d = features["L3d"]
                 L3d = self.ProjectorHead_3d(L3d)
