@@ -98,10 +98,8 @@ class FCN(nn.Module):
                 self.ProjectorHead_3u = ProjectorHead["3u"]
                 if self.r:
                     self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-                    # self.encode3_queue = nn.functional.normalize(self.encode3_queue, p=2, dim=2)
                     self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
                     self.register_buffer("decode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-                    # self.decode3_queue = nn.functional.normalize(self.decode3_queue, p=2, dim=2)
                     self.register_buffer("decode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
             if self.L2_loss != 0:
                 self.ProjectorHead_2d = ProjectorHead["2d"]
