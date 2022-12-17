@@ -182,10 +182,10 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
                     feats_y_que =  output["L3"][3]
                     labels_que =  output["L3"][4]
                     dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
-                                        encode_queue=model.module.encode1_queue,
-                                        encode_queue_ptr=model.module.encode1_queue_ptr,
-                                        decode_queue=model.module.decode1_queue,
-                                        decode_queue_ptr=model.module.decode1_queue_ptr)
+                                        encode_queue=model.module.encode3_queue,
+                                        encode_queue_ptr=model.module.encode3_queue_ptr,
+                                        decode_queue=model.module.decode3_queue,
+                                        decode_queue_ptr=model.module.decode3_queue_ptr)
 
 
             if scaler is not None:
