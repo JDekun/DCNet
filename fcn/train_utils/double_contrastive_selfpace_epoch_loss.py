@@ -220,32 +220,38 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1,
     labels_ = labels_.contiguous().view(-1, 1)
     contrast_feature_y = torch.cat(torch.unbind(feats_y_, dim=1), dim=0)
 
-    if queue is not None:
-        X_contrast, y_contrast = sample_negative(queue)
-        y_contrast = y_contrast.contiguous().view(-1, 1)
-        contrast_count = 1
-        contrast_feature = X_contrast
-    else:
-        y_contrast = labels_
-        contrast_count = n_view * 2
-        contrast_feature_x = torch.cat(torch.unbind(feats_, dim=1), dim=0)
-        contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
-
     # 1*N
     anchor_feature = contrast_feature_y
     anchor_count = n_view
     # n*n
     # anchor_feature = contrast_feature
     # anchor_count = contrast_count
+  
+    y_contrast = labels_
+    contrast_count = n_view * 2
+    contrast_feature_x = torch.cat(torch.unbind(feats_, dim=1), dim=0)
+    contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
 
     mask = torch.eq(labels_, torch.transpose(y_contrast, 0, 1)).float().cuda()
+    mask = mask.repeat(anchor_count, contrast_count)
+
+    if queue is not None:
+        X_contrast, y_contrast_queue = sample_negative(queue)
+        y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
+        contrast_count_queue = 1
+        contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
+
+        mask_queue = torch.eq(labels_, torch.transpose(y_contrast_queue, 0, 1)).float().cuda()
+        mask_queue = mask_queue.repeat(anchor_count, contrast_count_queue)
+
+        mask = torch.cat([mask, mask_queue], dim=1)
+
 
     anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)),
                                     temperature)
     logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
     logits = anchor_dot_contrast - logits_max.detach()
 
-    mask = mask.repeat(anchor_count, contrast_count)
     neg_mask = 1 - mask
 
     logits_mask = torch.ones_like(mask).scatter_(1,
