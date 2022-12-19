@@ -253,7 +253,7 @@ def main(args):
         mean_loss, lr = train_one_epoch(args, model, optimizer, train_data_loader, device, epoch,
                                         lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
 
-        confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
+        confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes, epoch=epoch)
         acc_global, acc, iu = confmat.compute()
         IOU = iu.mean().item() * 100
         val_info = (

@@ -73,11 +73,12 @@ def criterion(args, inputs, target, epoch):
     
     return loss
 
-def evaluate(model, data_loader, device, num_classes):
+def evaluate(model, data_loader, device, num_classes, epoch):
     model.eval()
     confmat = utils.ConfusionMatrix(num_classes)
     metric_logger = utils.MetricLogger(delimiter="  ")
-    header = 'Test:'
+    header = 'Epoch: [{}] Test'.format(epoch)
+    
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 10, header):
             image, target = image.to(device), target.to(device)
@@ -95,7 +96,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}]'.format(epoch)
+    header = 'Epoch: [{}] Train'.format(epoch)
 
     i = 1
     K = args.GAcc
