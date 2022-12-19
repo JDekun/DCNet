@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50, max_samples: int = 1024):
+def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, feats_que, feats_y_que, ignore_label: int = 255, max_views: int = 50, max_samples: int = 1024):
     batch_size, feat_dim = X.shape[0], X.shape[-1]
 
     classes = []
@@ -24,6 +24,12 @@ def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, 
     X_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
     Y_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
     y_ = torch.zeros(total_classes, dtype=torch.float).cuda()
+    
+    feats_que_ = None
+    feats_y_que_ = None
+    if feats_que and feats_y_que:
+        feats_que_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
+        feats_y_que_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
 
     X_ptr = 0
     for ii in range(batch_size):
@@ -75,10 +81,13 @@ def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, 
             if temp != 0:
                 X_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
                 Y_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
+                if feats_que and feats_y_que:
+                    feats_que_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
+                    feats_y_que_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
                 y_[X_ptr] = cls_id
                 X_ptr += 1
 
-    return X_, Y_, y_
+    return X_, Y_, y_, feats_que_, feats_y_que_
 
 def Self_pace2_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50, max_samples: int = 1024):
     batch_size, feat_dim = X.shape[0], X.shape[-1]
@@ -272,6 +281,38 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
                 decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
                 decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
 
+def dequeue_and_enqueue_self(args, keys, key_y, labels,
+                            encode_queue, encode_queue_ptr,
+                            decode_queue, decode_queue_ptr):
+    memory_size = args.memory_size
+
+    iter =  len(labels)
+    for i in range(iter):
+        lb = labels[i]
+        feat = keys[i]
+        feat_y = key_y[i]
+        K = feat.shape[0]
+
+        ptr = int(decode_queue_ptr[lb])
+
+        if ptr + K > memory_size:
+            total = ptr + K
+            start = total - memory_size
+            end = K - start
+
+            encode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat[0:end], p=2, dim=1)
+            encode_queue[lb, 0:start, :] = nn.functional.normalize(feat[end:], p=2, dim=1)
+            encode_queue_ptr[lb] = start
+            decode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat_y[0:end], p=2, dim=1)
+            decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
+            decode_queue_ptr[lb] = start
+
+        else:
+            encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
+            encode_queue_ptr[lb] = (encode_queue_ptr[lb] + K) % args.memory_size
+            decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+            decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
+
 def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_.shape[0], feats_.shape[1]
 
@@ -370,21 +411,29 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
     feats_y = feats_y.permute(0, 2, 3, 1)
     feats_y = feats_y.contiguous().view(feats_y.shape[0], -1, feats_y.shape[-1])
 
-    feats_, feats_y_, labels_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict)
+
+    feats_que = None
+    feats_y_que = None
+    if args.memory_size:
+        feats_que =  x[2]
+        feats_y_que =  x[3]
+        labels_que =  x[4]
+
+    feats_, feats_y_, labels_, feats_que_, feats_y_que_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict, feats_que, feats_y_que)
     # feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
 
     loss = Contrastive(feats_, feats_y_, labels_, queue)
 
     if args.memory_size:
-        # 更新队列
-        if args.L3_loss != 0:
-            feats_que =  x[2]
-            feats_y_que =  x[3]
-            labels_que =  x[4]
-            dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
-                                encode_queue=queue_origin['encode_queue'],
-                                encode_queue_ptr=queue_origin['encode_queue_ptr'],
-                                decode_queue=queue_origin['decode_queue'],
-                                decode_queue_ptr=queue_origin['decode_queue_ptr'])
+        # dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
+        #                     encode_queue=queue_origin['encode_queue'],
+        #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
+        #                     decode_queue=queue_origin['decode_queue'],
+        #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
+        dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, labels_,
+                                    encode_queue=queue_origin['encode_queue'],
+                                    encode_queue_ptr=queue_origin['encode_queue_ptr'],
+                                    decode_queue=queue_origin['decode_queue'],
+                                    decode_queue_ptr=queue_origin['decode_queue_ptr'])
 
     return loss
