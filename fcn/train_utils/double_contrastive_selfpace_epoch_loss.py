@@ -27,7 +27,7 @@ def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, feats_que, feats_y_que, i
     
     feats_que_ = None
     feats_y_que_ = None
-    if feats_que:
+    if feats_que != None:
         feats_que_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
         feats_y_que_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
 
