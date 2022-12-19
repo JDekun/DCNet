@@ -227,7 +227,7 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
         this_feat_y = key_y[bs].contiguous().view(feat_dim, -1)
         this_label = labels[bs].contiguous().view(-1)
         this_label_ids = torch.unique(this_label)
-        this_label_ids = [x for x in this_label_ids if x > 0 and x != 255]
+        this_label_ids = [x for x in this_label_ids if x != 255]
 
         for lb in this_label_ids:
             idxs = (this_label == lb).nonzero()
@@ -250,15 +250,15 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
             ptr = int(decode_queue_ptr[lb])
 
             if ptr + K >= args.memory_size:
-                decode_queue[lb, -K:, :] = nn.functional.normalize(feat, p=2, dim=1)
+                encode_queue[lb, -K:, :] = nn.functional.normalize(feat, p=2, dim=1)
+                encode_queue_ptr[lb] = 0
+                decode_queue[lb, -K:, :] = nn.functional.normalize(feat_y, p=2, dim=1)
                 decode_queue_ptr[lb] = 0
-                encode_queue[lb, -K:, :] = nn.functional.normalize(feat_y, p=2, dim=1)
-                encode_queue[lb] = 0
             else:
-                decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
-                decode_queue_ptr[lb] = (decode_queue_ptr[lb] + 1) % args.memory_size
-                encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+                encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
                 encode_queue_ptr[lb] = (encode_queue_ptr[lb] + 1) % args.memory_size
+                decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+                decode_queue_ptr[lb] = (decode_queue_ptr[lb] + 1) % args.memory_size
 
 def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_.shape[0], feats_.shape[1]
