@@ -288,7 +288,7 @@ def dequeue_and_enqueue_self(args, keys, key_y, labels,
 
     iter =  len(labels)
     for i in range(iter):
-        lb = labels[i]
+        lb = int(labels[i])
         feat = keys[i]
         feat_y = key_y[i]
         K = feat.shape[0]
