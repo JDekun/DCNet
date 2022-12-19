@@ -221,6 +221,7 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
     feat_dim = keys.shape[1]
 
     labels = labels[:, ::args.network_stride, ::args.network_stride]
+    memory_size = args.memory_size
 
     for bs in range(batch_size):
         this_feat = keys[bs].contiguous().view(feat_dim, -1)
@@ -249,16 +250,27 @@ def dequeue_and_enqueue(args, keys, key_y, labels,
             feat_y = torch.transpose(feat_y, 0, 1)
             ptr = int(decode_queue_ptr[lb])
 
-            if ptr + K >= args.memory_size:
-                encode_queue[lb, -K:, :] = nn.functional.normalize(feat, p=2, dim=1)
-                encode_queue_ptr[lb] = 0
-                decode_queue[lb, -K:, :] = nn.functional.normalize(feat_y, p=2, dim=1)
-                decode_queue_ptr[lb] = 0
+            if ptr + K > memory_size:
+                total = ptr + K
+                start = total - memory_size
+                end = K - start
+
+                encode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat[0:end], p=2, dim=1)
+                encode_queue[lb, 0:start, :] = nn.functional.normalize(feat[end:], p=2, dim=1)
+                encode_queue_ptr[lb] = start
+                decode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat_y[0:end], p=2, dim=1)
+                decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
+                decode_queue_ptr[lb] = start
+
+                # encode_queue[lb, -K:, :] = nn.functional.normalize(feat, p=2, dim=1)
+                # encode_queue_ptr[lb] = 0
+                # decode_queue[lb, -K:, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+                # decode_queue_ptr[lb] = 0
             else:
                 encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
-                encode_queue_ptr[lb] = (encode_queue_ptr[lb] + 1) % args.memory_size
+                encode_queue_ptr[lb] = (encode_queue_ptr[lb] + K) % args.memory_size
                 decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
-                decode_queue_ptr[lb] = (decode_queue_ptr[lb] + 1) % args.memory_size
+                decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
 
 def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_.shape[0], feats_.shape[1]
