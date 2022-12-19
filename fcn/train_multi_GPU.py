@@ -399,7 +399,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=str2bool,
+    parser.add_argument("--amp", default=True, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
     parser.add_argument("--seed", default=304, type=int,
                         help="random seed")
