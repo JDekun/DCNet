@@ -430,7 +430,8 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
         #                     decode_queue=queue_origin['decode_queue'],
         #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-        dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, labels_,
+        llb = labels_.detach()
+        dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, llb,
                                     encode_queue=queue_origin['encode_queue'],
                                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
                                     decode_queue=queue_origin['decode_queue'],
