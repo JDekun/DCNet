@@ -81,7 +81,7 @@ def Self_pace3_sampling(epoch, epochs, X, Y, y_hat, y, feats_que, feats_y_que, i
             if temp != 0:
                 X_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
                 Y_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
-                if feats_que and feats_y_que:
+                if feats_que != None:
                     feats_que_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
                     feats_y_que_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
                 y_[X_ptr] = cls_id
