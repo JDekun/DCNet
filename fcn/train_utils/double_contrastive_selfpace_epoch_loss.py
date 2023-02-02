@@ -334,8 +334,8 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
             decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
             decode_queue_ptr[lb] = start
 
-            code_queue_label[lb, ptr:memory_size, :] = lbe
-            code_queue_label[lb, 0:start, :] = lbe
+            code_queue_label[lb, ptr:memory_size] = lbe
+            code_queue_label[lb, 0:start] = lbe
 
         else:
             encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
