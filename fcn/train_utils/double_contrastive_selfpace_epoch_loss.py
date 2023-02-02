@@ -199,18 +199,19 @@ def Random_sampling(X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50
 
     return X_, Y_, y_
 
-def sample_negative(Q):
+def sample_negative(Q, Q_label):
     class_num, cache_size, feat_size = Q.shape
 
     X_ = torch.zeros((class_num * cache_size, feat_size)).float().cuda()
     y_ = torch.zeros((class_num * cache_size, 1)).float().cuda()
     sample_ptr = 0
     for ii in range(class_num):
-        if ii == 0: continue
+        # if ii == 0: continue
         this_q = Q[ii, :cache_size, :]
+        this_q_label = Q_label[ii, :cache_size]
 
         X_[sample_ptr:sample_ptr + cache_size, :] = this_q
-        y_[sample_ptr:sample_ptr + cache_size, :] = ii
+        y_[sample_ptr:sample_ptr + cache_size, :] = this_q_label
         sample_ptr += cache_size
 
     return X_, y_
@@ -366,9 +367,7 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
     mask = mask.repeat(anchor_count, contrast_count)
 
     if queue is not None:
-        # X_contrast, y_contrast_queue = sample_negative(queue) # 并行队列变形成串行
-        X_contrast = queue
-        y_contrast_queue = queue_label
+        X_contrast, y_contrast_queue = sample_negative(queue, queue_label) # 并行队列变形成串行
 
         y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
         contrast_count_queue = 1
