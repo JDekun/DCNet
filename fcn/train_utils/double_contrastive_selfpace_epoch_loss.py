@@ -208,10 +208,10 @@ def sample_negative(Q, Q_label):
     for ii in range(class_num):
         # if ii == 0: continue
         this_q = Q[ii, :cache_size, :]
-        this_q_label = Q_label[ii, :cache_size]
+        # this_q_label = Q_label[ii, :cache_size]
 
         X_[sample_ptr:sample_ptr + cache_size, :] = this_q
-        y_[sample_ptr:sample_ptr + cache_size, :] = torch.transpose(this_q_label, 0, 1)
+        y_[sample_ptr:sample_ptr + cache_size, :] = torch.transpose(Q_label, 0, 1)
         sample_ptr += cache_size
 
     return X_, y_
