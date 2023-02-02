@@ -305,7 +305,46 @@ def dequeue_and_enqueue_self(args, keys, key_y, labels,
             decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
             decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
 
-def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1, base_temperature: float = 0.07):
+def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
+                                encode_queue, encode_queue_ptr,
+                                decode_queue, decode_queue_ptr,
+                                code_queue_label):
+    memory_size = args.memory_size
+
+    iter =  len(labels)
+    for i in range(iter):
+        lb = 0
+        lbe = int(labels[i])
+        feat = keys[i]
+        feat_y = key_y[i]
+        K = feat.shape[0]
+
+        ptr = int(decode_queue_ptr[lb])
+
+        if ptr + K > memory_size:
+            total = ptr + K
+            start = total - memory_size
+            end = K - start
+
+            encode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat[0:end], p=2, dim=1)
+            encode_queue[lb, 0:start, :] = nn.functional.normalize(feat[end:], p=2, dim=1)
+            encode_queue_ptr[lb] = start
+            decode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat_y[0:end], p=2, dim=1)
+            decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
+            decode_queue_ptr[lb] = start
+
+            code_queue_label[lb, ptr:memory_size, :] = lbe
+            code_queue_label[lb, 0:start, :] = lbe
+
+        else:
+            encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
+            encode_queue_ptr[lb] = (encode_queue_ptr[lb] + K) % args.memory_size
+            decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+            decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
+
+            code_queue_label[lb, ptr:ptr + K] = lbe
+
+def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_.shape[0], feats_.shape[1]
 
     labels_ = labels_.contiguous().view(-1, 1)
@@ -327,7 +366,10 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, temperature: float = 0.1,
     mask = mask.repeat(anchor_count, contrast_count)
 
     if queue is not None:
-        X_contrast, y_contrast_queue = sample_negative(queue)
+        # X_contrast, y_contrast_queue = sample_negative(queue) # 并行队列变形成串行
+        X_contrast = queue
+        y_contrast_queue = queue_label
+
         y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
         contrast_count_queue = 1
         contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
@@ -382,16 +424,19 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
 
         if "encode_queue" in queue:
             encode_queue = queue['encode_queue']
+            encode_queue_label = queue['code_queue_label']
         else:
             encode_queue = None
 
         if "decode_queue" in queue:
             decode_queue = queue['decode_queue']
+            decode_queue_label = queue['code_queue_label']
         else:
             decode_queue = None
 
         if encode_queue is not None and decode_queue is not None:
             queue = torch.cat((encode_queue, decode_queue), dim=1)
+            queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
 
     batch_size = feats.shape[0]
 
@@ -406,7 +451,20 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
     feats_, feats_y_, labels_, feats_que_, feats_y_que_, labels_queue_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict)
     # feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
 
-    loss = Contrastive(feats_, feats_y_, labels_, queue)
+    loss = Contrastive(feats_, feats_y_, labels_, queue, queue_label)
+
+    # 并行更新队列
+    # if args.memory_size:
+    #     # dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
+    #     #                     encode_queue=queue_origin['encode_queue'],
+    #     #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
+    #     #                     decode_queue=queue_origin['decode_queue'],
+    #     #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
+    #     dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, labels_queue_,
+    #                                 encode_queue=queue_origin['encode_queue'],
+    #                                 encode_queue_ptr=queue_origin['encode_queue_ptr'],
+    #                                 decode_queue=queue_origin['decode_queue'],
+    #                                 decode_queue_ptr=queue_origin['decode_queue_ptr'])
 
     if args.memory_size:
         # dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
@@ -414,10 +472,11 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
         #                     decode_queue=queue_origin['decode_queue'],
         #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-        dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, labels_queue_,
-                                    encode_queue=queue_origin['encode_queue'],
-                                    encode_queue_ptr=queue_origin['encode_queue_ptr'],
-                                    decode_queue=queue_origin['decode_queue'],
-                                    decode_queue_ptr=queue_origin['decode_queue_ptr'])
+        dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
+                                        encode_queue=queue_origin['encode_queue'],
+                                        encode_queue_ptr=queue_origin['encode_queue_ptr'],
+                                        decode_queue=queue_origin['decode_queue'],
+                                        decode_queue_ptr=queue_origin['decode_queue_ptr'],
+                                        code_queue_label=queue_origin['code_queue_label'])
 
     return loss

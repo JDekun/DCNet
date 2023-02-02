@@ -89,7 +89,7 @@ class FCN(nn.Module):
 
         # self.m = 0.999
         self.r = args.memory_size
-        num_classes = args.num_classes + 1
+        num_classes = 1
         dim = args.proj_dim
 
         if self.contrast != -1:
@@ -109,6 +109,7 @@ class FCN(nn.Module):
                     self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
                     self.register_buffer("decode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("decode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("code2_queue_label", nn.functional.normalize(torch.randn(num_classes, self.r), p=2, dim=2))
             if self.L1_loss != 0:
                 self.ProjectorHead_1d = ProjectorHead["1d"]
                 self.ProjectorHead_1u = ProjectorHead["1u"]
