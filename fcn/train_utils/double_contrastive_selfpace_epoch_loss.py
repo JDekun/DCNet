@@ -209,8 +209,8 @@ def sample_negative(Q):
         if ii == 0: continue
         this_q = Q[ii, :cache_size, :]
 
-        X_[sample_ptr:sample_ptr + cache_size, ...] = this_q
-        y_[sample_ptr:sample_ptr + cache_size, ...] = ii
+        X_[sample_ptr:sample_ptr + cache_size, :] = this_q
+        y_[sample_ptr:sample_ptr + cache_size, :] = ii
         sample_ptr += cache_size
 
     return X_, y_
