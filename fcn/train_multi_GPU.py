@@ -96,12 +96,12 @@ def create_model(args):
 
 
 def main(args):
+    # 分布式训练初始化
     init_distributed_mode(args)
     print(args.name_date)
     print(args)
-
-
     device = torch.device(args.device)
+
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
@@ -164,14 +164,14 @@ def main(args):
         model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=args.ddp)
         model_without_ddp = model.module
 
+    # 设置参数的学习率
     params_to_optimize = [
         {"params": [p for p in model_without_ddp.backbone.parameters() if p.requires_grad]},
         {"params": [p for p in model_without_ddp.classifier.parameters() if p.requires_grad]},
     ]
     if args.aux:
         params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
-        params_to_optimize.append({"params": params, "lr": args.lr * 10})
-        
+        params_to_optimize.append({"params": params, "lr": args.lr * 10}) 
     if args.contrast != -1:
         if args.loss_name != "intra":
             if args.L3_loss != 0:
@@ -206,6 +206,7 @@ def main(args):
 
     scaler = torch.cuda.amp.GradScaler() if args.amp else None
     
+    # 梯度加速
     K = args.GAcc
     # 创建学习率更新策略，这里是每个step更新一次(不是每个epoch)
     lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader)//K, args.epochs, warmup=True)
