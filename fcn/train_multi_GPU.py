@@ -96,12 +96,12 @@ def create_model(args):
 
 
 def main(args):
+    # 分布式训练初始化
     init_distributed_mode(args)
     print(args.name_date)
     print(args)
-
-
     device = torch.device(args.device)
+
     # segmentation nun_classes + background
     num_classes = args.num_classes + 1
 
@@ -161,17 +161,17 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=args.ddp)
         model_without_ddp = model.module
 
+    # 设置参数的学习率
     params_to_optimize = [
         {"params": [p for p in model_without_ddp.backbone.parameters() if p.requires_grad]},
         {"params": [p for p in model_without_ddp.classifier.parameters() if p.requires_grad]},
     ]
     if args.aux:
         params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
-        params_to_optimize.append({"params": params, "lr": args.lr * 10})
-        
+        params_to_optimize.append({"params": params, "lr": args.lr * 10}) 
     if args.contrast != -1:
         if args.loss_name != "intra":
             if args.L3_loss != 0:
@@ -205,9 +205,11 @@ def main(args):
         lr=args.lr, momentum=args.momentum, weight_decay=args.weight_decay)
 
     scaler = torch.cuda.amp.GradScaler() if args.amp else None
-
+    
+    # 梯度加速
+    K = args.GAcc
     # 创建学习率更新策略，这里是每个step更新一次(不是每个epoch)
-    lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader), args.epochs, warmup=True)
+    lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader)//K, args.epochs, warmup=True)
 
     # 如果传入resume参数，即上次训练的权重地址，则接着上次的参数训练
     if args.resume:
@@ -252,7 +254,7 @@ def main(args):
         mean_loss, lr = train_one_epoch(args, model, optimizer, train_data_loader, device, epoch,
                                         lr_scheduler=lr_scheduler, print_freq=args.print_freq, scaler=scaler)
 
-        confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
+        confmat = evaluate(model, val_data_loader, device=device, num_classes=num_classes, epoch=epoch)
         acc_global, acc, iu = confmat.compute()
         IOU = iu.mean().item() * 100
         val_info = (
@@ -380,7 +382,7 @@ if __name__ == "__main__":
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 训练过程打印信息的频率
-    parser.add_argument('--print-freq', default=5, type=int, help='print frequency')
+    parser.add_argument('--print-freq', default=10, type=int, help='print frequency')
     # 文件保存地址
     parser.add_argument('--checkpoint_dir', default='./results', help='path where to save')
     # 基于上次的训练结果接着训练
@@ -398,7 +400,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", default=False, type=str2bool,
+    parser.add_argument("--amp", default=True, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
     parser.add_argument("--seed", default=304, type=int,
                         help="random seed")
@@ -419,6 +421,12 @@ if __name__ == "__main__":
     parser.add_argument("--L3_loss", default=0, type=float, help="L3 loss")
     parser.add_argument("--L2_loss", default=0, type=float, help="L2 loss")
     parser.add_argument("--L1_loss", default=0, type=float, help="L1 loss")
+    parser.add_argument("--GAcc", default=1, type=int, help="Gradient Accumulation")
+    parser.add_argument("--memory_size", default=5000, type=int, help="")
+    parser.add_argument("--proj_dim", default=128, type=int, help="")
+    parser.add_argument("--network_stride", default=8, type=int, help="")
+    parser.add_argument("--pixel_update_freq", default=10, type=int, help="")
+    parser.add_argument('--ddp', default=False, type=str2bool, help='')
 
     args = parser.parse_args()
 

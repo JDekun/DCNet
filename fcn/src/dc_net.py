@@ -60,7 +60,6 @@ class IntermediateLayerGetter(nn.ModuleDict):
                 out[out_name] = x
         return out
 
-
 class FCN(nn.Module):
     """
     Implements a Fully-Convolutional Network for semantic segmentation.
@@ -88,20 +87,38 @@ class FCN(nn.Module):
         self.classifier = classifier
         self.aux_classifier = aux_classifier
 
+        # self.m = 0.999
+        self.r = args.memory_size
+        num_classes = args.num_classes + 1
+        dim = args.proj_dim
+
         if self.contrast != -1:
             if self.L3_loss != 0:
                 self.ProjectorHead_3d = ProjectorHead["3d"]
                 self.ProjectorHead_3u = ProjectorHead["3u"]
+                if self.r:
+                    self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("decode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
             if self.L2_loss != 0:
                 self.ProjectorHead_2d = ProjectorHead["2d"]
                 self.ProjectorHead_2u = ProjectorHead["2u"]
+                if self.r:             
+                    self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("decode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
             if self.L1_loss != 0:
                 self.ProjectorHead_1d = ProjectorHead["1d"]
                 self.ProjectorHead_1u = ProjectorHead["1u"]
-            
-            
+                if self.r:                  
+                    self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("decode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))             
 
-    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor, target=None, is_eval=False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
         # contract: features is a dict of tensors
         features = self.backbone(x)
@@ -122,7 +139,7 @@ class FCN(nn.Module):
         #         result["aux"] = x
 
         # if self.ProjectorHead is not None:
-        if self.contrast != -1:
+        if self.contrast != -1 and is_eval == False:
             if self.L3_loss != 0:
                 L3d = features["L3d"]
                 L3d = self.ProjectorHead_3d(L3d)
@@ -130,7 +147,7 @@ class FCN(nn.Module):
                 L3u = classifer["L3u"]
                 L3u = self.ProjectorHead_3u(L3u)
                 L3u = F.normalize(L3u, p=2, dim=1)
-                result["L3"] = [L3d, L3u]
+                result["L3"] = [L3d, L3u, L3d.detach(), L3u.detach(), target.detach()]
             if self.L2_loss != 0:
                 L2u = classifer["L2u"]
                 L2u = self.ProjectorHead_2u(L2u)
@@ -138,7 +155,7 @@ class FCN(nn.Module):
                 L2d = features["L2d"]
                 L2d = self.ProjectorHead_2d(L2d)
                 L2d = F.normalize(L2d, p=2, dim=1)
-                result["L2"] = [L2d, L2u]
+                result["L2"] = [L2d, L2u, L2d.detach(), L2u.detach(), target.detach()]
             if self.L1_loss != 0:
                 L1d = features["L1d"]
                 L1d = self.ProjectorHead_1d(L1d)
@@ -146,7 +163,7 @@ class FCN(nn.Module):
                 L1u = classifer["L1u"]
                 L1u = self.ProjectorHead_1u(L1u)
                 L1u = F.normalize(L1u, p=2, dim=1)
-                result["L1"] = [L1d, L1u]
+                result["L1"] = [L1d, L1u, L1d.detach(), L1u.detach(), target.detach()]
                            
         return result
 
