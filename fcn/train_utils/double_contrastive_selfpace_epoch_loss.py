@@ -308,7 +308,6 @@ def dequeue_and_enqueue_self(args, keys, key_y, labels,
 
 def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
                                 encode_queue, encode_queue_ptr,
-                                decode_queue, decode_queue_ptr,
                                 code_queue_label):
     memory_size = args.memory_size
 
@@ -478,8 +477,6 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
                                         encode_queue=queue_origin['encode_queue'],
                                         encode_queue_ptr=queue_origin['encode_queue_ptr'],
-                                        decode_queue=queue_origin['decode_queue'],
-                                        decode_queue_ptr=queue_origin['decode_queue_ptr'],
                                         code_queue_label=queue_origin['code_queue_label'])
 
     return loss
