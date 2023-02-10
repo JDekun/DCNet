@@ -371,12 +371,14 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
 
         y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
         contrast_count_queue = 1
-        contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
+        # contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
+        contrast_feature = X_contrast
 
         mask_queue = torch.eq(labels_, torch.transpose(y_contrast_queue, 0, 1)).float().cuda()
         mask_queue = mask_queue.repeat(anchor_count, contrast_count_queue)
 
-        mask = torch.cat([mask, mask_queue], dim=1)
+        # mask = torch.cat([mask, mask_queue], dim=1)
+        mask = mask_queue
 
 
     anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)),
@@ -427,15 +429,17 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         else:
             encode_queue = None
 
-        if "decode_queue" in queue:
-            decode_queue = queue['decode_queue']
-            decode_queue_label = queue['code_queue_label']
-        else:
-            decode_queue = None
+        # if "decode_queue" in queue:
+        #     decode_queue = queue['decode_queue']
+        #     decode_queue_label = queue['code_queue_label']
+        # else:
+        #     decode_queue = None
 
-        if encode_queue is not None and decode_queue is not None:
-            queue = torch.cat((encode_queue, decode_queue), dim=1)
-            queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
+        # if encode_queue is not None and decode_queue is not None:
+        #     queue = torch.cat((encode_queue, decode_queue), dim=1)
+        #     queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
+        queue = encode_queue
+        queue_label = encode_queue_label
 
     batch_size = feats.shape[0]
 
