@@ -435,7 +435,7 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         else:
             decode_queue = None
 
-        if encode_queue is not None and decode_queue is not None:
+        if encode_queue is not None:
             queue = torch.cat((encode_queue, decode_queue), dim=1)
             queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
 
