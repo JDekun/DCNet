@@ -320,7 +320,7 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
         feat_y = key_y[i]
         K = feat.shape[0]
 
-        ptr = int(decode_queue_ptr[lb])
+        ptr = int(encode_queue_ptr[lb])
 
         if ptr + K > memory_size:
             total = ptr + K
@@ -330,9 +330,9 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
             encode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat[0:end], p=2, dim=1)
             encode_queue[lb, 0:start, :] = nn.functional.normalize(feat[end:], p=2, dim=1)
             encode_queue_ptr[lb] = start
-            decode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat_y[0:end], p=2, dim=1)
-            decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
-            decode_queue_ptr[lb] = start
+            # decode_queue[lb, ptr:memory_size, :] = nn.functional.normalize(feat_y[0:end], p=2, dim=1)
+            # decode_queue[lb, 0:start, :] = nn.functional.normalize(feat_y[end:], p=2, dim=1)
+            # decode_queue_ptr[lb] = start
 
             code_queue_label[lb, ptr:memory_size] = lbe
             code_queue_label[lb, 0:start] = lbe
@@ -340,8 +340,8 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
         else:
             encode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat, p=2, dim=1)
             encode_queue_ptr[lb] = (encode_queue_ptr[lb] + K) % args.memory_size
-            decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
-            decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
+            # decode_queue[lb, ptr:ptr + K, :] = nn.functional.normalize(feat_y, p=2, dim=1)
+            # decode_queue_ptr[lb] = (decode_queue_ptr[lb] + K) % args.memory_size
 
             code_queue_label[lb, ptr:ptr + K] = lbe
 
@@ -429,17 +429,15 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
         else:
             encode_queue = None
 
-        # if "decode_queue" in queue:
-        #     decode_queue = queue['decode_queue']
-        #     decode_queue_label = queue['code_queue_label']
-        # else:
-        #     decode_queue = None
+        if "decode_queue" in queue:
+            decode_queue = queue['decode_queue']
+            decode_queue_label = queue['code_queue_label']
+        else:
+            decode_queue = None
 
-        # if encode_queue is not None and decode_queue is not None:
-        #     queue = torch.cat((encode_queue, decode_queue), dim=1)
-        #     queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
-        queue = encode_queue
-        queue_label = encode_queue_label
+        if encode_queue is not None and decode_queue is not None:
+            queue = torch.cat((encode_queue, decode_queue), dim=1)
+            queue_label = torch.cat((encode_queue_label, decode_queue_label), dim=1)
 
     batch_size = feats.shape[0]
 
