@@ -420,11 +420,11 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
     queue=None
     if args.memory_size:
         queue_origin = x[5]
-        queue = queue_origin
+        # queue = queue_origin
 
-        if "encode_queue" in queue:
-            encode_queue = queue['encode_queue']
-            encode_queue_label = queue['code_queue_label']
+        if "encode_queue" in queue_origin:
+            encode_queue = queue_origin['encode_queue']
+            encode_queue_label = queue_origin['code_queue_label']
         else:
             encode_queue = None
 
