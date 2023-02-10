@@ -358,9 +358,10 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
     # anchor_count = contrast_count
   
     y_contrast = labels_
-    contrast_count = n_view * 2
+    contrast_count = n_view
     contrast_feature_x = torch.cat(torch.unbind(feats_, dim=1), dim=0)
-    contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
+    # contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
+    contrast_feature = contrast_feature_x
 
     mask = torch.eq(labels_, torch.transpose(y_contrast, 0, 1)).float().cuda()
     mask = mask.repeat(anchor_count, contrast_count)
@@ -370,14 +371,14 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
 
         y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
         contrast_count_queue = 1
-        # contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
-        contrast_feature = X_contrast
+        contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
+        # contrast_feature = X_contrast
 
         mask_queue = torch.eq(labels_, torch.transpose(y_contrast_queue, 0, 1)).float().cuda()
         mask_queue = mask_queue.repeat(anchor_count, contrast_count_queue)
 
-        # mask = torch.cat([mask, mask_queue], dim=1)
-        mask = mask_queue
+        mask = torch.cat([mask, mask_queue], dim=1)
+        # mask = mask_queue
 
 
     anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)),
