@@ -99,8 +99,9 @@ class FCN(nn.Module):
                 if self.r:
                     self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                    self.register_buffer("decode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-                    self.register_buffer("decode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    # self.register_buffer("decode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    # self.register_buffer("decode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                    self.register_buffer("code3_queue_label", torch.randn(num_classes, self.r))
             if self.L2_loss != 0:
                 self.ProjectorHead_2d = ProjectorHead["2d"]
                 self.ProjectorHead_2u = ProjectorHead["2u"]
@@ -116,8 +117,9 @@ class FCN(nn.Module):
                 if self.r:                  
                     self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
                     self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                    self.register_buffer("decode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-                    self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))             
+                    # self.register_buffer("decode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+                    # self.register_buffer("decode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long)) 
+                    self.register_buffer("code1_queue_label", torch.randn(num_classes, self.r))           
 
     def forward(self, x: Tensor, target=None, is_eval=False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]

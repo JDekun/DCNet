@@ -112,8 +112,9 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
                         result3 = OrderedDict()
                         result3['encode_queue'] = model.module.encode3_queue
                         result3['encode_queue_ptr'] = model.module.encode3_queue_ptr
-                        result3['decode_queue'] = model.module.decode3_queue
-                        result3['decode_queue_ptr'] = model.module.decode3_queue_ptr
+                        # result3['decode_queue'] = model.module.decode3_queue
+                        # result3['decode_queue_ptr'] = model.module.decode3_queue_ptr
+                        result3['code_queue_label'] = model.module.code3_queue_label
                         output["L3"].append(result3)
                     if args.L2_loss != 0:
                         result2 = OrderedDict()
@@ -127,8 +128,9 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
                         result1 = OrderedDict()
                         result1['encode_queue'] = model.module.encode1_queue
                         result1['encode_queue_ptr'] = model.module.encode1_queue_ptr
-                        result1['decode_queue'] = model.module.decode1_queue
-                        result1['decode_queue_ptr'] = model.module.decode1_queue_ptr
+                        # result1['decode_queue'] = model.module.decode1_queue
+                        # result1['decode_queue_ptr'] = model.module.decode1_queue_ptr
+                        result1['code_queue_label'] = model.module.code1_queue_label
                         output["L1"].append(result1)
                 loss = criterion(args, output, target, epoch)
             
