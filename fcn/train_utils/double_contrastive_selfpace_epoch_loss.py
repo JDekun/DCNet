@@ -74,8 +74,9 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
 
             temp = indices.shape[0]
             if temp != 0:
-                X_[X_ptr, 0, :] = torch.mean(X[ii, indices, :].squeeze(1), dim=0)
-                Y_[X_ptr, 0, :] = torch.mean(Y[ii, indices, :].squeeze(1), dim=0)
+                print(X[ii, indices, :])
+                X_[X_ptr, 0, :] = torch.sum(X[ii, indices, :].squeeze(1), dim=0)
+                Y_[X_ptr, 0, :] = torch.sum(Y[ii, indices, :].squeeze(1), dim=0)
                 y_[X_ptr] = cls_id
                 X_ptr += 1
 
