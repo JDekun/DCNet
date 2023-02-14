@@ -10,7 +10,7 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
         this_y = y_hat[ii]
         this_classes = torch.unique(this_y)
         this_classes = [x for x in this_classes if x != ignore_label]
-        this_classes = [x for x in this_classes if (this_y == x).nonzero().shape[0] > max_views]
+        # this_classes = [x for x in this_classes if (this_y == x).nonzero().shape[0] > max_views]
 
         classes.append(this_classes)
         total_classes += len(this_classes)
@@ -18,8 +18,8 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
     if total_classes == 0:
         return None, None
 
-    n_view = max_samples // total_classes
-    n_view = min(n_view, max_views)
+    # n_view = max_samples // total_classes
+    # n_view = min(n_view, max_views)
 
     X_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
     Y_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
@@ -42,29 +42,13 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
             archor = epochs//3
             if  archor > epoch:
                 num_hard_keep = 0
-                if num_easy > n_view:
-                    num_easy_keep = n_view
-                else:
-                    num_easy_keep = num_easy
+                num_easy_keep = num_easy
             elif 2*archor > epoch:
-                if num_hard >= n_view / 2 and num_easy >= n_view / 2:
-                    num_hard_keep = n_view // 2
-                    num_easy_keep = n_view - num_hard_keep
-                elif num_hard >= n_view / 2:
-                    num_easy_keep = num_easy
-                    num_hard_keep = n_view - num_easy_keep
-                elif num_easy >= n_view / 2:
-                    num_hard_keep = num_hard
-                    num_easy_keep = n_view - num_hard_keep
-                else:
-                    # Log.info('this shoud be never touched! {} {} {}'.format(num_hard, num_easy, n_view))
-                    raise Exception
+                num_hard_keep = num_hard
+                num_easy_keep = num_easy
             else:
                 num_easy_keep = 0
-                if num_hard > n_view:
-                    num_hard_keep = n_view
-                else:
-                    num_hard_keep = num_hard
+                num_hard_keep = num_hard
 
             perm = torch.randperm(num_hard)
             hard_indices = hard_indices[perm[:num_hard_keep]]
@@ -74,9 +58,6 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
 
             temp = indices.shape[0]
             if temp != 0:
-                # print(X[ii, indices, :].squeeze(1).shape)
-                # print(X[ii, indices, 1])
-                # print(torch.mean(X[ii, indices, :].squeeze(1), dim=0))
                 X_[X_ptr, 0, :] = torch.mean(X[ii, indices, :].squeeze(1), dim=0)
                 Y_[X_ptr, 0, :] = torch.mean(Y[ii, indices, :].squeeze(1), dim=0)
                 y_[X_ptr] = cls_id
