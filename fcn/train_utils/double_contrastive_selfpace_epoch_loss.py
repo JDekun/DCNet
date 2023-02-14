@@ -21,8 +21,8 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
     n_view = max_samples // total_classes
     n_view = min(n_view, max_views)
 
-    X_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
-    Y_ = torch.zeros((total_classes, n_view, feat_dim), dtype=torch.float).cuda()
+    X_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
+    Y_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
     y_ = torch.zeros(total_classes, dtype=torch.float).cuda()
     
 
@@ -74,8 +74,8 @@ def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int 
 
             temp = indices.shape[0]
             if temp != 0:
-                X_[X_ptr, 0:1, :] = (torch.sum(X[ii, indices, :].squeeze(1), dim=1)).unsqueeze(1)
-                Y_[X_ptr, 0:1, :] = (torch.sum(Y[ii, indices, :].squeeze(1), dim=1)).unsqueeze(1)
+                X_[X_ptr, 0, :] = torch.sum(X[ii, indices, :].squeeze(1), dim=0).unsqueeze(1)
+                Y_[X_ptr, 0, :] = torch.sum(Y[ii, indices, :].squeeze(1), dim=0).unsqueeze(1)
                 y_[X_ptr] = cls_id
                 X_ptr += 1
 
