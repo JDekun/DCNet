@@ -177,28 +177,28 @@ def main(args):
             if args.L3_loss != 0:
                 params_L3d = [p for p in model_without_ddp.ProjectorHead_3d.parameters() if p.requires_grad]
                 params_L3u = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L3d, "lr": args.lr})
-                params_to_optimize.append({"params": params_L3u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L3d, "lr": args.lr * 10})
+                params_to_optimize.append({"params": params_L3u, "lr": args.lr * 10})
             if args.L2_loss != 0:
                 params_L2d = [p for p in model_without_ddp.ProjectorHead_2d.parameters() if p.requires_grad]
                 params_L2u = [p for p in model_without_ddp.ProjectorHead_2u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L2d, "lr": args.lr})
-                params_to_optimize.append({"params": params_L2u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L2d, "lr": args.lr * 10})
+                params_to_optimize.append({"params": params_L2u, "lr": args.lr * 10})
             if args.L1_loss != 0:
                 params_L1d = [p for p in model_without_ddp.ProjectorHead_1d.parameters() if p.requires_grad]
                 params_L1u = [p for p in model_without_ddp.ProjectorHead_1u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L1d, "lr": args.lr})
-                params_to_optimize.append({"params": params_L1u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L1d, "lr": args.lr * 10})
+                params_to_optimize.append({"params": params_L1u, "lr": args.lr * 10})
         else:
             if args.L3_loss != 0:
                 params_L3u = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L3u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L3u, "lr": args.lr * 10})
             if args.L2_loss != 0:
                 params_L2u = [p for p in model_without_ddp.ProjectorHead_2u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L2u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L2u, "lr": args.lr * 10})
             if args.L1_loss != 0:
                 params_L1u = [p for p in model_without_ddp.ProjectorHead_1u.parameters() if p.requires_grad]
-                params_to_optimize.append({"params": params_L1u, "lr": args.lr})
+                params_to_optimize.append({"params": params_L1u, "lr": args.lr * 10})
             
     optimizer = torch.optim.SGD(
         params_to_optimize,
