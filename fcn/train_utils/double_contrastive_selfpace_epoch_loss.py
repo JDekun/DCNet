@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-def Concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50, max_samples: int = 1024):
+def Self_pace3_concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, max_views: int = 50, max_samples: int = 1024):
     batch_size, feat_dim = X.shape[0], X.shape[-1]
 
     classes = []
@@ -74,8 +74,8 @@ def Concat_sampling(epoch, epochs, X, Y, y_hat, y, ignore_label: int = 255, max_
 
             temp = indices.shape[0]
             if temp != 0:
-                X_[X_ptr, 0:temp, :] = X[ii, indices, :].squeeze(1)
-                Y_[X_ptr, 0:temp, :] = Y[ii, indices, :].squeeze(1)
+                X_[X_ptr, 0:1, :] = torch.sum(X[ii, indices, :].squeeze(1), dim=1).unsqueeze(1)
+                Y_[X_ptr, 0:1, :] = torch.sum(Y[ii, indices, :].squeeze(1), dim=1).unsqueeze(1)
                 y_[X_ptr] = cls_id
                 X_ptr += 1
 
@@ -531,7 +531,7 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
     feats_y = feats_y.permute(0, 2, 3, 1)
     feats_y = feats_y.contiguous().view(feats_y.shape[0], -1, feats_y.shape[-1])
 
-    feats_, feats_y_, labels_, feats_que_, feats_y_que_, labels_queue_ = Self_pace3_sampling(epoch, epochs, feats, feats_y, labels, predict)
+    feats_, feats_y_, labels_, feats_que_, feats_y_que_, labels_queue_ = Self_pace3_concat_sampling(epoch, epochs, feats, feats_y, labels, predict)
     # feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
 
     loss = Contrastive(feats_, feats_y_, labels_, queue, queue_label)
