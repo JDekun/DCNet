@@ -483,6 +483,7 @@ def EPOCHSELFPACEDoublePixelContrastLoss(args, epoch, epochs, x, labels=None, pr
     assert labels.shape[-1] == feats.shape[-1], '{} {}'.format(labels.shape, feats.shape)
 
     queue=None
+    queue_label=None
     if args.memory_size:
         queue_origin = x[5]
         # queue = queue_origin
