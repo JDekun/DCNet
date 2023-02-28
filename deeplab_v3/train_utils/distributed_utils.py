@@ -7,7 +7,6 @@ import torch.distributed as dist
 import errno
 import os
 
-import wandb
 
 class SmoothedValue(object):
     """Track a series of values and provide access to smoothed values over a
@@ -112,7 +111,6 @@ class ConfusionMatrix(object):
 
     def __str__(self):
         acc_global, acc, iu = self.compute()
-        wandb.log({"acc_global":acc_global, "miou":iu.mean().item() * 100})
         return (
             'global correct: {:.1f}\n'
             'average row correct: {}\n'
@@ -269,7 +267,6 @@ def init_distributed_mode(args):
     if 'RANK' in os.environ and 'WORLD_SIZE' in os.environ:
         args.rank = int(os.environ["RANK"])
         args.world_size = int(os.environ['WORLD_SIZE'])
-        args.workers = args.world_size
         args.gpu = int(os.environ['LOCAL_RANK'])
     elif 'SLURM_PROCID' in os.environ:
         args.rank = int(os.environ['SLURM_PROCID'])

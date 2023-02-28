@@ -8,6 +8,11 @@ from src import UNet, DC_UNet, DCNet, VGG16UNet, MobileV3Unet
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import DriveDataset
 import transforms as T
+import numpy as np
+import random
+
+import wandb
+from train_utils.distributed_utils import is_main_process
 
 # 远程调试
 # import debugpy; debugpy.connect(('10.59.139.1', 5678))
@@ -120,7 +125,7 @@ def main(args):
         collate_fn=train_dataset.collate_fn, drop_last=True)
 
     val_data_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=1,
+        val_dataset, batch_size=args.batch_size_val,
         sampler=test_sampler, num_workers=args.workers,
         collate_fn=train_dataset.collate_fn)
 
@@ -134,7 +139,7 @@ def main(args):
 
     model_without_ddp = model
     if args.distributed:
-        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu],find_unused_parameters=True)
+        model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu], find_unused_parameters=True)
         model_without_ddp = model.module
 
     params_to_optimize = [p for p in model_without_ddp.parameters() if p.requires_grad]
@@ -167,6 +172,15 @@ def main(args):
         print(val_info)
         return
 
+
+    ##### wandb #####
+    if args.wandb and (args.rank in [-1, 0]):
+        os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
+        os.environ['WANDB_MODE'] = args.wandb_model
+        wandb.init(project="unet")
+        wandb.config.update(args)
+        wandb.watch(model, log="all", log_freq=10)
+
     best_dice = 0.
     print("Start training")
     start_time = time.time()
@@ -178,9 +192,23 @@ def main(args):
                                         with_contrast = with_contrast, layer_loss=layer_loss, loss_name=loss_name)
 
         confmat, dice = evaluate(model, val_data_loader, device=device, num_classes=num_classes)
-        val_info = str(confmat)
+        acc_global, acc, iu = confmat.compute()
+        val_info = (
+            'global correct: {:.1f}\n'
+            'average row correct: {}\n'
+            'IoU: {}\n'
+            'mean IoU: {:.1f}').format(
+                acc_global.item() * 100,
+                ['{:.1f}'.format(i) for i in (acc * 100).tolist()],
+                ['{:.1f}'.format(i) for i in (iu * 100).tolist()],
+                iu.mean().item() * 100)
+        # val_info = str(confmat)
         print(val_info)
         print(f"dice coefficient: {dice:.3f}")
+
+        ##### wandb #####
+        if args.wandb and (args.rank in [-1, 0]):
+            wandb.log({"mean_loss": mean_loss, "mIOU": iu.mean().item() * 100, "acc_global": acc_global, "lr": lr, "dice": dice})
 
         # # 只在主进程上进行写操作
         # if args.rank in [-1, 0]:
@@ -211,23 +239,58 @@ def main(args):
 
             if args.save_best is True:
                 save_on_master(save_file,
-                               os.path.join(args.output_dir, 'best_model.pth'))
+                               os.path.join(args.output_dir, 'best_model_{}_{}.pth'.format(model_name, loss_name)))
             else:
                 save_on_master(save_file,
-                               os.path.join(args.output_dir, 'model_{}.pth'.format(epoch)))
+                               os.path.join(args.output_dir, 'model_{}_{}_{}.pth'.format(epoch, model_name, loss_name)))
+        
+    # 只在主节点上保存
+    if is_main_process():
+            batch_size = 1
+            input_shape = (3, 480, 480)
+            x = torch.randn(batch_size,*input_shape).cuda()
+            torch.onnx.export(model.module, x, "./{}/best_model_{}_{}.onnx".format(args.output_dir, model_name, loss_name))
+            wandb.save("./{}/best_model_{}_{}.onnx".format(args.output_dir, model_name, loss_name))
+
+            if args.save_best is True:
+                wandb.save(os.path.join(args.output_dir, 'best_model_{}_{}.pth'.format(model_name, loss_name)))
+            else:
+                wandb.save(os.path.join(args.output_dir, 'model_{}_{}_{}.pth'.format(epoch, model_name, loss_name)))
+
+            
 
     total_time = time.time() - start_time
     total_time_str = str(datetime.timedelta(seconds=int(total_time)))
     print('Training time {}'.format(total_time_str))
 
+def str2bool(v):
+    """Usage:
+    parser.add_argument('--pretrained', type=str2bool, nargs='?', const=True,
+                        dest='pretrained', help='Whether to use pretrained models.')
+    """
+    if v.lower() in ("yes", "true", "t", "y", "1"):
+        return True
+    elif v.lower() in ("no", "false", "f", "n", "0"):
+        return False
+    else:
+        raise argparse.ArgumentTypeError("Unsupported value encountered.")
+
+def set_seed(seed):
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+    os.environ["PYTHONHASHSEED"] = str(seed) 
 
 if __name__ == "__main__":
     import argparse
 
     parser = argparse.ArgumentParser(
         description=__doc__)
-
-    env = os.environ
 
     # 训练文件的根目录(DRIVE)
     parser.add_argument('--data-path', default='../../../input/drive', help='dataset')
@@ -236,7 +299,9 @@ if __name__ == "__main__":
     # 检测目标类别数(不包含背景)
     parser.add_argument('--num-classes', default=1, type=int, help='num_classes')
     # 每块GPU上的batch_size
-    parser.add_argument('-b', '--batch-size', default=4, type=int,
+    parser.add_argument('--batch_size', default=4, type=int,
+                        help='images per gpu, the total batch size is $NGPU x batch_size')
+    parser.add_argument('--batch_size_val', default=2, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
     # 指定接着从哪个epoch数开始训练
     parser.add_argument('--start_epoch', default=0, type=int, help='start epoch')
@@ -244,7 +309,7 @@ if __name__ == "__main__":
     parser.add_argument('--epochs', default=200, type=int, metavar='N',
                         help='number of total epochs to run')
     # 是否使用同步BN(在多个GPU之间同步)，默认不开启，开启后训练速度会变慢
-    parser.add_argument('--sync_bn', type=bool, default=False, help='whether using SyncBatchNorm')
+    parser.add_argument('--sync_bn', type=str2bool, default=False, help='whether using SyncBatchNorm')
     # 数据加载以及预处理的线程数
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
@@ -255,11 +320,11 @@ if __name__ == "__main__":
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     # SGD的weight_decay参数
-    parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
+    parser.add_argument('--weight_decay', default=1e-4, type=float,
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 只保存dice coefficient值最高的权重
-    parser.add_argument('--save-best', default=True, type=bool, help='only save best weights')
+    parser.add_argument('--save-best', default=True, type=str2bool, help='only save best weights')
     # 训练过程打印信息的频率
     parser.add_argument('--print-freq', default=1, type=int, help='print frequency')
     # 文件保存地址
@@ -279,7 +344,7 @@ if __name__ == "__main__":
                         help='number of distributed processes')
     parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
-    parser.add_argument("--amp", action='store_true',
+    parser.add_argument("--amp", default=True, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
     
     # 双对比损失设置
@@ -287,12 +352,20 @@ if __name__ == "__main__":
                         help="loss for layers")
     parser.add_argument("--with_contrast", default=20, type=int,
                         help="when start epoch")
-    parser.add_argument("--model_name", default="DCNet", type=str,
-                        help="the name of model")
-    parser.add_argument("--loss_name", default="double", type=str,
-                        help="the name of double")
+    parser.add_argument("--model_name", default="DC_UNet", type=str,
+                        help="UNet DC_UNet DCNet VGG16UNet MobileV3Unet")
+    parser.add_argument("--loss_name", default="intra", type=str,
+                        help="segloss intra inter double")
+    parser.add_argument("--seed", default=200, type=int,
+                        help="random seed")
+    
+    # wandb设置
+    parser.add_argument('--wandb', default=False, type=str2bool, help='w/o wandb')
+    parser.add_argument('--wandb_model', default='dryrun', type=str, help='run or dryrun')
 
     args = parser.parse_args()
+
+    set_seed(args.seed)
 
     # 如果指定了保存文件地址，检查文件夹是否存在，若不存在，则创建
     if args.output_dir:

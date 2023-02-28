@@ -8,7 +8,7 @@ class VOCSegmentation(data.Dataset):
     def __init__(self, voc_root, year="2012", transforms=None, txt_name: str = "train.txt"):
         super(VOCSegmentation, self).__init__()
         assert year in ["2007", "2012"], "year must be in ['2007', '2012']"
-        root = os.path.join(voc_root, f"VOC{year}")
+        root = os.path.join(voc_root, "VOCdevkit", f"VOC{year}")
         assert os.path.exists(root), "path '{}' does not exist.".format(root)
         image_dir = os.path.join(root, 'JPEGImages')
         mask_dir = os.path.join(root, 'SegmentationClass')
@@ -51,7 +51,6 @@ class VOCSegmentation(data.Dataset):
 
 
 def cat_list(images, fill_value=0):
-    # 计算该batch数据中，channel, h, w的最大值
     max_size = tuple(max(s) for s in zip(*[img.shape for img in images]))
     batch_shape = (len(images),) + max_size
     batched_imgs = images[0].new(*batch_shape).fill_(fill_value)
