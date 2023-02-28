@@ -4,12 +4,17 @@ fcn/fcn_resnet50_coco.pth
 fcn/wandb
 fcn/pre_trained
 <<<<<<< HEAD
+<<<<<<< HEAD
 
 fcn_main/
 =======
 fcn/checkpoint
 fcn/results
 >>>>>>> 7f2a4c34799735fd489a28ad1a05f0d499241551
+=======
+fcn/checkpoint
+fcn/results
+>>>>>>> 0c930f0c3fe5d79e927bfaf3e0519a0ab153f587
 
 unet/multi_train
 unet/save_weights
