@@ -4,7 +4,7 @@ import datetime
 
 import torch
 
-from src import fcn_resnet50, dcnet_resnet50
+from src import fcn_resnet50, dcnet_resnet50,dcnet_resnet101
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import VOCSegmentation
 import transforms as T
@@ -66,6 +66,8 @@ def create_model(args):
         model = fcn_resnet50(aux=aux, num_classes=num_classes)
     elif model_name == "dcnet_resnet50":
         model = dcnet_resnet50(args, aux=aux, num_classes=num_classes)
+    elif model_name == "dcnet_resnet101":
+        model = dcnet_resnet101(args, aux=aux, num_classes=num_classes)
     else:
         raise ValueError("model_name are not present in model")
 
@@ -80,7 +82,7 @@ def create_model(args):
                 if "classifier.4" in k:
                     del weights_dict[k]
 
-        if pre_trained == "fcn_resnet50_coco.pth":
+        if pre_trained == "fcn_resnet50_coco.pth" or "fcn_resnet101_coco.pth":
             for k in list(weights_dict.keys()):
                 if "classifier" in k:
                     del weights_dict[k]

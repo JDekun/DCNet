@@ -298,30 +298,52 @@ def dcnet_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     return model
 
 
-def dcnet_resnet101(aux, num_classes=21, pretrain_backbone=False):
+def dcnet_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'fcn_resnet101_coco': 'https://download.pytorch.org/models/fcn_resnet101_coco-7ecb50ca.pth'
+    project_dim = args.project_dim
+
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
 
     if pretrain_backbone:
         # 载入resnet101 backbone预训练权重
-        backbone.load_state_dict(torch.load("resnet101.pth", map_location='cpu'))
+        backbone.load_state_dict(torch.load("resnet50.pth", map_location='cpu'))
 
     out_inplanes = 2048
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
-    if aux:
-        return_layers['layer3'] = 'aux'
+    return_layers['layer3'] = 'L3d'
+    return_layers['layer2'] = 'L2d'
+    return_layers['layer1'] = 'L1d'
+    
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
     if aux:
-        aux_classifier = FCNHead(aux_inplanes, num_classes)
+        aux_classifier = FCNHead_aux(aux_inplanes, num_classes)
 
     classifier = FCNHead(out_inplanes, num_classes)
 
-    model = FCN(backbone, classifier, aux_classifier)
+    prejector = OrderedDict()
+    if args.contrast != -1:
+        if args.L3_loss != 0:
+            Projector_3d = ProjectorHead(out_inplanes//2, project_dim)
+            Projector_3u = ProjectorHead(out_inplanes//2, project_dim)
+            prejector["3d"] = Projector_3d
+            prejector["3u"] = Projector_3u
+        if args.L2_loss != 0:
+            Projector_2d = ProjectorHead(out_inplanes//4, project_dim)
+            Projector_2u = ProjectorHead(out_inplanes//4, project_dim)
+            prejector["2d"] = Projector_2d
+            prejector["2u"] = Projector_2u
+        if args.L1_loss != 0:
+            Projector_1d = ProjectorHead(out_inplanes//8, project_dim)
+            Projector_1u = ProjectorHead(out_inplanes//8, project_dim)
+            prejector["1d"] = Projector_1d
+            prejector["1u"] = Projector_1u
+
+    model = FCN(args, backbone, classifier, aux_classifier, prejector)
 
     return model
