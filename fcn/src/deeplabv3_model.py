@@ -216,7 +216,7 @@ def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
     return model
 
 
-def deeplabv3_resnet101(aux, num_classes=21, pretrain_backbone=False):
+def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth'
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
@@ -245,7 +245,7 @@ def deeplabv3_resnet101(aux, num_classes=21, pretrain_backbone=False):
     return model
 
 
-def deeplabv3_mobilenetv3_large(aux, num_classes=21, pretrain_backbone=False):
+def deeplabv3_mobilenetv3_large(args, aux, num_classes=21, pretrain_backbone=False):
     # 'mobilenetv3_large_imagenet': 'https://download.pytorch.org/models/mobilenet_v3_large-8738ca79.pth'
     # 'depv3_mobilenetv3_large_coco': "https://download.pytorch.org/models/deeplabv3_mobilenet_v3_large-fc3c493d.pth"
     backbone = mobilenet_v3_large(dilated=True)

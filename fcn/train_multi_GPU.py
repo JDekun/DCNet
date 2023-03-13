@@ -4,7 +4,7 @@ import datetime
 
 import torch
 
-from src import fcn_resnet50, dcnet_resnet50, dcnet_resnet101, deeplabv3_resnet101
+from src import fcn_resnet50,fcn_resnet50, dcnet_resnet50, dcnet_resnet101, deeplabv3_resnet101
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from my_dataset import VOCSegmentation
 import transforms as T
@@ -61,38 +61,22 @@ def create_model(args):
     aux = aux=args.aux
     model_name = args.model_name
     pre_trained = args.pre_trained
+    
+    model = eval(model_name)(args, aux=aux, num_classes=num_classes)
 
-    if model_name == "fcn_resnet50":
-        model = fcn_resnet50(aux=aux, num_classes=num_classes)
-    elif model_name == "dcnet_resnet50":
-        model = dcnet_resnet50(args, aux=aux, num_classes=num_classes)
-    elif model_name == "dcnet_resnet101":
-        model = dcnet_resnet101(args, aux=aux, num_classes=num_classes)
-    else:
-        raise ValueError("model_name are not present in model")
+    weights_dict = torch.load(f"../../../input/{pre_trained}", map_location='cpu')
+        
+    if num_classes != 21:
+        # 官方提供的预训练权重是21类(包括背景)
+        # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
+        for k in list(weights_dict.keys()):
+            if "classifier.4" in k:
+                del weights_dict[k]
 
-    if pre_trained != "None":
-        weights_dict = torch.load(f"../../../input/{pre_trained}", map_location='cpu')
-        pre_trained = pre_trained.split("/")[-1]
-            
-        if num_classes != 21:
-            # 官方提供的预训练权重是21类(包括背景)
-            # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
-            for k in list(weights_dict.keys()):
-                if "classifier.4" in k:
-                    del weights_dict[k]
-
-        if pre_trained == "fcn_resnet50_coco.pth" or "fcn_resnet101_coco.pth":
-            for k in list(weights_dict.keys()):
-                if "classifier" in k:
-                    del weights_dict[k]
-            missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-        else:
-            missing_keys, unexpected_keys = model.load_state_dict(weights_dict['model'], strict=False)
-   
-        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-            print("missing_keys: ", missing_keys)
-            print("unexpected_keys: ", unexpected_keys)
+    missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
+    if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+        print("missing_keys: ", missing_keys)
+        print("unexpected_keys: ", unexpected_keys)
 
     return model
 
