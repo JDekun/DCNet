@@ -82,7 +82,10 @@ def evaluate(model, data_loader, device, num_classes, epoch):
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 10, header):
             image, target = image.to(device), target.to(device)
-            output = model(image, is_eval=True)
+            try:
+                output = model(image, is_eval=True)
+            except:
+                output = model(image)
             output = output['out']
 
             confmat.update(target.flatten(), output.argmax(1).flatten())
