@@ -19,6 +19,7 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
         SAM_X = X[ii, indices, :].squeeze(1)
         SAM_Y = Y[ii, indices, :].squeeze(1)
 
+        print(X)
         print(X_.shape)
         print(SAM_X.shape)
 
