@@ -79,11 +79,12 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
+        self.contrast = contrast
 
     def forward(self, x: Tensor) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -91,11 +92,16 @@ class DeepLabV3(nn.Module):
         features = self.backbone(x)
 
         result = OrderedDict()
+        contrast = OrderedDict()
         x = features["out"]
         x = self.classifier(x)
         # 使用双线性插值还原回原图尺度
-        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-        result["out"] = x
+        out = F.interpolate(x["out"], size=input_shape, mode='bilinear', align_corners=False)
+        contrast_de = F.interpolate(x["contrast_de"], size=(120,120), mode='bilinear', align_corners=False)
+        result["out"] = out
+        contrast["contrast_de"] = contrast_de
+        contrast["contrast_en"] = features["contrast_en"].detach()
+        result["contrast"] = contrast
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -186,6 +192,30 @@ class DeepLabHead(nn.Sequential):
             nn.Conv2d(256, num_classes, 1)
         )
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = OrderedDict()
+        count = 0
+        for modul in self:
+            x = modul(x)
+            if count == 0:
+                out['contrast_de'] = x
+            count =count + 1
+        out['out'] = x
+        return out
+
+class contrast_head(nn.Sequential):
+    def __init__(self) -> None:
+        super(contrast_head, self).__init__(
+            nn.Conv2d(256, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for modul in self:
+            x = modul(x)
+        return x 
+
 
 def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
@@ -229,9 +259,14 @@ def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
+    return_layers['layer1'] = 'contrast_en'
     if aux:
         return_layers['layer3'] = 'aux'
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+    contrast=None
+    if args.contrast != -1:
+        contrast = contrast_head()
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -240,7 +275,7 @@ def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
 
     return model
 

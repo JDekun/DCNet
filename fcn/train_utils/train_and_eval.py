@@ -7,6 +7,7 @@ from train_utils.inter_contrastive_loss import  InterPixelContrastLoss
 from train_utils.double_contrastive_loss import  DoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 from train_utils.double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
+from train_utils.simsiam_loss import  simsiam_loss
 from contextlib import nullcontext
 from collections import OrderedDict
 
@@ -15,7 +16,7 @@ def criterion(args, inputs, target, epoch):
     loss_name = args.loss_name
     epochs = args.epochs
     
-    if args.model_name == "fcn_resnet50" or args.contrast == -1:
+    if args.contrast == -1:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
@@ -25,7 +26,19 @@ def criterion(args, inputs, target, epoch):
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
             if name == "out":
                 pred_y = x
-                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) 
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+            elif name == "contrast":
+                contrast_en = x["contrast_en"]
+                contrast_de = x["contrast_de"]
+
+                h, w = contrast_de.shape[2], contrast_de.shape[3]
+                targ = target.unsqueeze(1).float().clone()
+                targ = F.interpolate(targ, size=(h, w), mode='nearest')
+                targ = targ.squeeze(1).long()
+
+                criterion = nn.CosineSimilarity(dim=1).cuda(args.gpu)
+                loss = simsiam_loss(criterion,contrast_en, contrast_de, targ, ignore_index=255)
+                losses[name] = loss
             else:
                 # proj_x = x[0]
                 proj_y = x[1]
@@ -62,6 +75,9 @@ def criterion(args, inputs, target, epoch):
 
     if len(losses) == 1:
         return losses['out']
+    
+    if len(losses) == 2:
+        return losses['out'] + losses['contrast']
     
     loss = losses['out']
 
