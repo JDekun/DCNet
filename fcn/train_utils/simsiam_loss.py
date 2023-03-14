@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
-    batch_size = X.shape[0]
+    batch_size, feat_dim = X.shape[0], X.shape[3]
 
     X = X.permute(0, 2, 3, 1)
     Y = Y.permute(0, 2, 3, 1)
@@ -10,13 +10,15 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     ii = 0
     this_y_hat = y_hat[0]
     indices = (this_y_hat != ignore_label).nonzero()
-    X = X[ii, indices, :].squeeze(1)
+    leng = len(indices)
+    X_ = torch.zeros((leng, feat_dim), dtype=torch.float).cuda()
+    X_ = X[ii, indices, :].squeeze(1)
 
     # X_ = X[ii, indices, :]
     # Y_ = Y[ii, indices, :]
 
-    print(X.shape)
-    # print(X_.shape)
+    print(X_.shape)
+    print(X_)
 
     for ii in range(batch_size-1):
         ii = ii + 1
