@@ -12,6 +12,7 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     indices = (this_y_hat != ignore_label).nonzero()
     leng = len(indices)
     X_ = torch.zeros((leng, feat_dim), dtype=torch.float).cuda()
+    print(X[ii, indices,:])
     X_[:, :] = X[ii, indices].squeeze()
 
     # X_ = X[ii, indices, :]
