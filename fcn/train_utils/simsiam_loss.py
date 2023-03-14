@@ -16,8 +16,8 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
 
         indices = (this_y_hat != ignore_label).nonzero()
 
-        X_ = torch.cat(X_, X[ii, indices, :].squeeze(1))
-        Y_ = torch.cat(Y_, Y[ii, indices, :].squeeze(1))
+        X_ = torch.cat(X_, X[ii, indices, :].squeeze(1), 0)
+        Y_ = torch.cat(Y_, Y[ii, indices, :].squeeze(1), 0)
 
     return X_, Y_
 
