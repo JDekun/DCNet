@@ -10,12 +10,12 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     ii = 0
     this_y_hat = y_hat[0]
     indices = (this_y_hat != ignore_label).nonzero()
-    X = X[0]
-    X_ = X[indices, :]
-    Y_ = Y[ii, indices, :]
+    X = X[ii, indices, :]
+    # X_ = X[ii, indices, :]
+    # Y_ = Y[ii, indices, :]
 
     print(X.shape)
-    print(X_.shape)
+    # print(X_.shape)
 
     for ii in range(batch_size-1):
         ii = ii + 1
