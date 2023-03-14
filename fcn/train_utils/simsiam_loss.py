@@ -10,8 +10,8 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     ii = 0
     this_y_hat = y_hat[0]
     indices = (this_y_hat != ignore_label).nonzero()
-    X = X[0]
-    X = X[indices]
+    X = X[ii, indices]
+
     # X_ = X[ii, indices, :]
     # Y_ = Y[ii, indices, :]
 
