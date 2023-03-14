@@ -13,18 +13,16 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     X_ = X[ii, indices, :].squeeze(1)
     Y_ = Y[ii, indices, :].squeeze(1)
 
+    print(X_.shape)
+
     for ii in range(batch_size-1):
         ii = ii + 1
         this_y_hat = y_hat[ii]
 
         indices = (this_y_hat != ignore_label).nonzero()
 
-        SAM_X = X[ii, indices, :]
+        SAM_X = X[ii, indices, :].squeeze(1)
         SAM_Y = Y[ii, indices, :].squeeze(1)
-
-        print(X.shape)
-        print(X_.shape)
-        print(SAM_X.shape)
 
         X_ = torch.cat(X_, SAM_X, 0)
         Y_ = torch.cat(Y_, SAM_Y, 0)
