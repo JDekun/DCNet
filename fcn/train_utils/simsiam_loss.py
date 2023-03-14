@@ -2,7 +2,7 @@ import torch
 import torch.nn as nn
 
 def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
-    batch_size, = X.shape[0]
+    batch_size = X.shape[0]
 
     X = X.permute(0, 2, 3, 1)
     Y = Y.permute(0, 2, 3, 1)
