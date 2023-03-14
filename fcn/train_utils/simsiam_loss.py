@@ -10,7 +10,7 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
     ii = 0
     this_y_hat = y_hat[0]
     indices = (this_y_hat != ignore_label).nonzero()
-    X_ = X[ii, indices, :]
+    X_ = X[ii, indices, :].squeeze(1)
     Y_ = Y[ii, indices, :].squeeze(1)
 
     for ii in range(batch_size-1):
@@ -19,11 +19,10 @@ def Main_sampling(X, Y, y_hat, ignore_label: int = 255):
 
         indices = (this_y_hat != ignore_label).nonzero()
 
-        SAM_X = X[ii, indices, :].squeeze(1)
+        SAM_X = X[ii, indices, :]
         SAM_Y = Y[ii, indices, :].squeeze(1)
 
         print(X.shape)
-        print(indices.shape)
         print(X_.shape)
         print(SAM_X.shape)
 
