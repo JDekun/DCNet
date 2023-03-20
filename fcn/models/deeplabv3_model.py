@@ -103,12 +103,22 @@ class DeepLabV3(nn.Module):
         # 对比simsiam模块
         if  self.contrast is not None:
             if is_eval == False:
-                con_de = x["contrast_de"]
-                con_de = self.contrast(con_de)
-                contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
+                # # Plan A
+                # con_de = x["contrast_de"]
+                # con_de = self.contrast(con_de)
+                # contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
                 
-                contrast["contrast_de"] = contrast_de
-                contrast["contrast_en"] = features["contrast_en"].detach()
+                # contrast["contrast_de"] = contrast_de
+                # contrast["contrast_en"] = features["contrast_en"].detach()
+                # result["contrast"] = contrast
+
+                # Plan B
+                contrast_de = x["contrast_de"]
+                con_de = x["contrast_de_out"]
+                contrast_de_out = self.contrast(con_de)
+                
+                contrast["contrast_de"] = contrast_de_out
+                contrast["contrast_en"] = contrast_de.detach()
                 result["contrast"] = contrast
 
         if self.aux_classifier is not None:
@@ -207,6 +217,8 @@ class DeepLabHead(nn.Sequential):
             x = modul(x)
             if count == 0:
                 out['contrast_de'] = x
+            elif count == 3:
+                out['contrast_de_out'] = x
             count =count + 1
         out['out'] = x
         return out
