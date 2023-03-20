@@ -3,7 +3,7 @@ import torch
 
 from src import fcn_resnet50
 from train_utils import evaluate
-from my_dataset import VOCSegmentation
+from fcn.datasets.pascal_voc import VOCSegmentation
 import transforms as T
 
 

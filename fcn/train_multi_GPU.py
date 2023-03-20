@@ -6,54 +6,18 @@ import torch
 
 from src import fcn_resnet50,fcn_resnet50, dcnet_resnet50, dcnet_resnet101, deeplabv3_resnet101
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
-from my_dataset import VOCSegmentation
+from datasets.pascal_voc import VOCSegmentation
 import transforms as T
 import numpy as np
 import random
 
+from datasets.builder import datasets_load
+
 # 远程调试
 # import debugpy; debugpy.connect(('10.59.139.1', 5678))
 
-
 import wandb
 from train_utils.distributed_utils import is_main_process
-
-class SegmentationPresetTrain:
-    def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        min_size = int(0.5 * base_size)
-        max_size = int(2.0 * base_size)
-
-        trans = [T.RandomResize(min_size, max_size)]
-        if hflip_prob > 0:
-            trans.append(T.RandomHorizontalFlip(hflip_prob))
-        trans.extend([
-            T.RandomCrop(crop_size),
-            T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
-        ])
-        self.transforms = T.Compose(trans)
-
-    def __call__(self, img, target):
-        return self.transforms(img, target)
-
-
-class SegmentationPresetEval:
-    def __init__(self, base_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        self.transforms = T.Compose([
-            T.RandomResize(base_size, base_size),
-            T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
-        ])
-
-    def __call__(self, img, target):
-        return self.transforms(img, target)
-
-
-def get_transform(train):
-    base_size = 520
-    crop_size = 480
-
-    return SegmentationPresetTrain(base_size, crop_size) if train else SegmentationPresetEval(base_size)
 
 
 def create_model(args):
@@ -107,17 +71,7 @@ def main(args):
         raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(args.data_path))
 
     # load train data set
-    # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> train.txt
-    train_dataset = VOCSegmentation(args.data_path,
-                                    year="2012",
-                                    transforms=get_transform(train=True),
-                                    txt_name="train.txt")
-    # load validation data set
-    # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> val.txt
-    val_dataset = VOCSegmentation(args.data_path,
-                                  year="2012",
-                                  transforms=get_transform(train=False),
-                                  txt_name="val.txt")
+    train_dataset, val_dataset = datasets_load(args)
 
     print("Creating data loaders")
     if args.distributed:
@@ -130,12 +84,12 @@ def main(args):
     train_data_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size,
         sampler=train_sampler, num_workers=args.workers,
-        collate_fn=train_dataset.collate_fn, drop_last=True)
+        pin_memory=True, drop_last=True)
 
     val_data_loader = torch.utils.data.DataLoader(
         val_dataset, batch_size=args.batch_size_val,
         sampler=test_sampler, num_workers=args.workers,
-        collate_fn=train_dataset.collate_fn)
+        pin_memory=True)
 
     print("Creating model")
     # create model num_classes equal background + 20 classes
@@ -339,7 +293,7 @@ if __name__ == "__main__":
         description=__doc__)
 
     # 训练文件的根目录(VOCdevkit)
-    parser.add_argument('--data_path', default='../../../input/pascal', help='dataset')
+    parser.add_argument('--data_path', default='pascal-voc-2012', help='dataset')
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)

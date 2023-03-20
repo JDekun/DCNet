@@ -120,6 +120,8 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     K = args.GAcc
     optimizer.zero_grad()
     for image, target in metric_logger.log_every(data_loader, print_freq, header):
+        target = target.to(torch.long)
+        
         image, target = image.to(device), target.to(device)
         my_context = model.no_sync if args.rank != -1 and i % K != 0 else nullcontext
         with my_context():
