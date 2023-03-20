@@ -3,10 +3,9 @@ import os
 import datetime
 
 import torch
+import models
 
-from src import fcn_resnet50,fcn_resnet50, dcnet_resnet50, dcnet_resnet101, deeplabv3_resnet101
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
-from datasets.pascal_voc import VOCSegmentation
 import transforms as T
 import numpy as np
 import random
@@ -21,14 +20,14 @@ from train_utils.distributed_utils import is_main_process
 
 
 def create_model(args):
-    num_classes = args.num_classes + 1
+    num_classes = args.num_classes
     aux = aux=args.aux
     model_name = args.model_name
     pre_trained = args.pre_trained
     
-    model = eval(model_name)(args, aux=aux, num_classes=num_classes)
+    model = eval("models."+model_name)(args, aux=aux, num_classes=num_classes)
 
-    weights_dict = torch.load(f"../../../input/{pre_trained}", map_location='cpu')
+    weights_dict = torch.load(f"../../../input/pre-trained/{pre_trained}", map_location='cpu')
         
     if num_classes != 21:
         # 官方提供的预训练权重是21类(包括背景)
@@ -53,7 +52,7 @@ def main(args):
     device = torch.device(args.device)
 
     # segmentation nun_classes + background
-    num_classes = args.num_classes + 1
+    num_classes = args.num_classes
 
     # 用来保存运行结果的文件，只在主进程上进行写操作
     results_log = args.checkpoint_dir + "/output.log"
@@ -297,7 +296,7 @@ if __name__ == "__main__":
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
-    parser.add_argument('--num_classes', default=20, type=int, help='num_classes')
+    parser.add_argument('--num_classes', default=21, type=int, help='num_classes')
     # 每块GPU上的batch_size
     parser.add_argument('--batch_size', default=16, type=int,
                         help='images per gpu, the total batch size is $NGPU x batch_size')
@@ -360,7 +359,7 @@ if __name__ == "__main__":
     parser.add_argument("--project_dim", default=128, type=int, help="the dim of projector")
     parser.add_argument("--loss_name", default="intra", type=str, help="segloss intra inter double")
     parser.add_argument("--contrast", default=10, type=int, help="epoch start with contrast")
-    parser.add_argument("--pre_trained", default="fcn_resnet50_coco", type=str, help="pre_trained name")
+    parser.add_argument("--pre_trained", default="fcn_resnet50_coco.pth", type=str, help="pre_trained name")
     parser.add_argument("--L3_loss", default=0, type=float, help="L3 loss")
     parser.add_argument("--L2_loss", default=0, type=float, help="L2 loss")
     parser.add_argument("--L1_loss", default=0, type=float, help="L1 loss")
