@@ -98,10 +98,9 @@ def evaluate(model, data_loader, device, num_classes, epoch):
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 10, header):
             image, target = image.to(device), target.to(device)
-            try:
-                output = model(image, is_eval=True)
-            except:
-                output = model(image)
+            
+            output = model(image, is_eval=True)
+           
             output = output['out']
 
             confmat.update(target.flatten(), output.argmax(1).flatten())
@@ -125,10 +124,9 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
         my_context = model.no_sync if args.rank != -1 and i % K != 0 else nullcontext
         with my_context():
             with torch.cuda.amp.autocast(enabled=scaler is not None):
-                try:
-                    output = model(image, target)
-                except:
-                    output = model(image)
+                
+                output = model(image, target)
+            
                 if args.contrast != -1 and args.memory_size >0:
                     if args.L3_loss != 0:
                         result3 = OrderedDict()

@@ -86,7 +86,7 @@ class DeepLabV3(nn.Module):
         self.aux_classifier = aux_classifier
         self.contrast = contrast
 
-    def forward(self, x: Tensor, is_eval=False) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor, target=None, is_eval = False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
         # contract: features is a dict of tensors
         features = self.backbone(x)
@@ -101,14 +101,15 @@ class DeepLabV3(nn.Module):
         result["out"] = out
 
         # 对比simsiam模块
-        if self.contrast is not None:
-            con_de = x["contrast_de"]
-            con_de = self.contrast(con_de)
-            contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
-            
-            contrast["contrast_de"] = contrast_de
-            contrast["contrast_en"] = features["contrast_en"].detach()
-            result["contrast"] = contrast
+        if  self.contrast is not None:
+            if is_eval == False:
+                con_de = x["contrast_de"]
+                con_de = self.contrast(con_de)
+                contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
+                
+                contrast["contrast_de"] = contrast_de
+                contrast["contrast_en"] = features["contrast_en"].detach()
+                result["contrast"] = contrast
 
         if self.aux_classifier is not None:
             x = features["aux"]
