@@ -5,7 +5,7 @@ from typing import Dict
 import torch
 from torch import nn, Tensor
 from torch.nn import functional as F
-from .backbone import resnet50, resnet101
+from .resnet_backbone import resnet50, resnet101
 
 
 class IntermediateLayerGetter(nn.ModuleDict):
