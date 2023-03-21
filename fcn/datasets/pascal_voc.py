@@ -2,7 +2,7 @@ import os
 
 import torch.utils.data as data
 from PIL import Image
-
+import transforms as T
 
 class VOCSegmentation(data.Dataset):
     def __init__(self, voc_root, year="2012", transforms=None, txt_name: str = "train.txt"):
@@ -59,6 +59,41 @@ def cat_list(images, fill_value=0):
         pad_img[..., :img.shape[-2], :img.shape[-1]].copy_(img)
     return batched_imgs
 
+class SegmentationPresetTrain:
+    def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+        min_size = int(0.5 * base_size)
+        max_size = int(2.0 * base_size)
+
+        trans = [T.RandomResize(min_size, max_size)]
+        if hflip_prob > 0:
+            trans.append(T.RandomHorizontalFlip(hflip_prob))
+        trans.extend([
+            T.RandomCrop(crop_size),
+            T.ToTensor(),
+            T.Normalize(mean=mean, std=std),
+        ])
+        self.transforms = T.Compose(trans)
+
+    def __call__(self, img, target):
+        return self.transforms(img, target)
+
+
+class SegmentationPresetEval:
+    def __init__(self, base_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
+        self.transforms = T.Compose([
+            T.RandomResize(base_size, base_size),
+            T.ToTensor(),
+            T.Normalize(mean=mean, std=std),
+        ])
+
+    def __call__(self, img, target):
+        return self.transforms(img, target)
+
+def get_transform(train):
+    base_size = 520
+    crop_size = 480
+
+    return SegmentationPresetTrain(base_size, crop_size) if train else SegmentationPresetEval(base_size)
 
 # dataset = VOCSegmentation(voc_root="/data/", transforms=get_transform(train=True))
 # d1 = dataset[0]

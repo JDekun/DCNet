@@ -10,7 +10,7 @@ import transforms as T
 import numpy as np
 import random
 
-from datasets.builder import datasets_load
+from datasets.builder import Pre_datasets
 
 # 远程调试
 # import debugpy; debugpy.connect(('10.59.139.1', 5678))
@@ -51,7 +51,7 @@ def main(args):
     print(args)
     device = torch.device(args.device)
 
-    # segmentation nun_classes + background
+    # segmentation nun_classes(background)
     num_classes = args.num_classes
 
     # 用来保存运行结果的文件，只在主进程上进行写操作
@@ -64,32 +64,9 @@ def main(args):
             train_info = f"epoch,mean_loss,mIOU,acc_global,lr\n" 
             f.write(train_info)
 
-    args.data_path = "../../../input/" + args.data_path
-    # check voc root
-    if os.path.exists(os.path.join(args.data_path)) is False:
-        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(args.data_path))
-
-    # load train data set
-    train_dataset, val_dataset = datasets_load(args)
-
-    print("Creating data loaders")
-    if args.distributed:
-        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
-        test_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
-    else:
-        train_sampler = torch.utils.data.RandomSampler(train_dataset)
-        test_sampler = torch.utils.data.SequentialSampler(val_dataset)
-
-    train_data_loader = torch.utils.data.DataLoader(
-        train_dataset, batch_size=args.batch_size,
-        sampler=train_sampler, num_workers=args.workers,
-        pin_memory=True, drop_last=True)
-
-    val_data_loader = torch.utils.data.DataLoader(
-        val_dataset, batch_size=args.batch_size_val,
-        sampler=test_sampler, num_workers=args.workers,
-        pin_memory=True)
-
+    # 对datasets进行预处理
+    train_data_loader, val_data_loader, train_sampler = Pre_datasets(args)
+    
     print("Creating model")
     # create model num_classes equal background + 20 classes
     model = create_model(args)

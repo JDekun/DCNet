@@ -1,7 +1,49 @@
-from .pascal_voc import VOCSegmentation
+from .pascal_voc import VOCSegmentation, get_transform
 from .cityscapes_gf import Cityscapes
+import os, torch
 
-import transforms as T
+def Pre_datasets(args):
+    args.data_path = "../../../input/" + args.data_path
+    # check voc root
+    if os.path.exists(os.path.join(args.data_path)) is False:
+        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(args.data_path))
+
+    # load train data set
+    train_dataset, val_dataset = datasets_load(args)
+
+    print("Creating data loaders")
+    if args.distributed:
+        train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
+        test_sampler = torch.utils.data.distributed.DistributedSampler(val_dataset)
+    else:
+        train_sampler = torch.utils.data.RandomSampler(train_dataset)
+        test_sampler = torch.utils.data.SequentialSampler(val_dataset)
+
+    if 'pascal-voc-2012' in args.data_path :
+        train_data_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size,
+            sampler=train_sampler, num_workers=args.workers,
+            pin_memory=True, drop_last=True,
+            collate_fn=train_dataset.collate_fn)
+
+        val_data_loader = torch.utils.data.DataLoader(
+            val_dataset, batch_size=args.batch_size_val,
+            sampler=test_sampler, num_workers=args.workers,
+            pin_memory=True,
+            collate_fn=train_dataset.collate_fn)
+    elif 'cityscapes' in args.data_path :
+        train_data_loader = torch.utils.data.DataLoader(
+            train_dataset, batch_size=args.batch_size,
+            sampler=train_sampler, num_workers=args.workers,
+            pin_memory=True, drop_last=True)
+
+        val_data_loader = torch.utils.data.DataLoader(
+            val_dataset, batch_size=args.batch_size_val,
+            sampler=test_sampler, num_workers=args.workers,
+            pin_memory=True)
+    
+    return train_data_loader, val_data_loader, train_sampler
+
 
 
 def datasets_load(args):
@@ -50,39 +92,3 @@ def datasets_load(args):
 
     return train_dataset, val_dataset
 
-
-class SegmentationPresetTrain:
-    def __init__(self, base_size, crop_size, hflip_prob=0.5, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        min_size = int(0.5 * base_size)
-        max_size = int(2.0 * base_size)
-
-        trans = [T.RandomResize(min_size, max_size)]
-        if hflip_prob > 0:
-            trans.append(T.RandomHorizontalFlip(hflip_prob))
-        trans.extend([
-            T.RandomCrop(crop_size),
-            T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
-        ])
-        self.transforms = T.Compose(trans)
-
-    def __call__(self, img, target):
-        return self.transforms(img, target)
-
-
-class SegmentationPresetEval:
-    def __init__(self, base_size, mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225)):
-        self.transforms = T.Compose([
-            T.RandomResize(base_size, base_size),
-            T.ToTensor(),
-            T.Normalize(mean=mean, std=std),
-        ])
-
-    def __call__(self, img, target):
-        return self.transforms(img, target)
-
-def get_transform(train):
-    base_size = 520
-    crop_size = 480
-
-    return SegmentationPresetTrain(base_size, crop_size) if train else SegmentationPresetEval(base_size)

@@ -237,22 +237,28 @@ class contrast_head(nn.Sequential):
         return x 
 
 
-def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
+def deeplabv3_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
     backbone = resnet50(replace_stride_with_dilation=[False, True, True])
 
+
     if pretrain_backbone:
         # 载入resnet50 backbone预训练权重
-        backbone.load_state_dict(torch.load("resnet50.pth", map_location='cpu'))
+        backbone.load_state_dict(torch.load("resnet101.pth", map_location='cpu'))
 
     out_inplanes = 2048
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
+    return_layers['layer1'] = 'contrast_en'
     if aux:
         return_layers['layer3'] = 'aux'
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+    contrast=None
+    if args.contrast != -1:
+        contrast = contrast_head()
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -261,7 +267,7 @@ def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
 
     return model
 
