@@ -1,7 +1,7 @@
 import os
 import torch
 
-from models import fcn_resnet50
+from Models import fcn_resnet50
 from train_utils import evaluate
 from fcn.datasets.pascal_voc import VOCSegmentation
 import transforms as T

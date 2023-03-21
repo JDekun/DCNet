@@ -3,7 +3,7 @@ import os
 import datetime
 
 import torch
-import models
+import Models
 
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 import transforms as T
@@ -25,7 +25,7 @@ def create_model(args):
     model_name = args.model_name
     pre_trained = args.pre_trained
     
-    model = eval("models."+model_name)(args, aux=aux, num_classes=num_classes)
+    model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes)
 
     weights_dict = torch.load(f"../../../input/pre-trained/{pre_trained}", map_location='cpu')
         

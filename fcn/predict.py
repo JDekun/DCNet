@@ -7,7 +7,7 @@ from torchvision import transforms
 import numpy as np
 from PIL import Image
 
-from models import fcn_resnet50
+from Models import fcn_resnet50
 
 
 def time_synchronized():
