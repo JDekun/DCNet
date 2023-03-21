@@ -3,45 +3,20 @@ import os
 import datetime
 
 import torch
-import Models
 
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 import transforms as T
 import numpy as np
 import random
 
-from Datasets.build import Pre_datasets
+from Datasets.dataset_build import Pre_datasets
+from Models.model_build import create_model
 
 # 远程调试
 # import debugpy; debugpy.connect(('10.59.139.1', 5678))
 
 import wandb
 from train_utils.distributed_utils import is_main_process
-
-
-def create_model(args):
-    num_classes = args.num_classes
-    aux = aux=args.aux
-    model_name = args.model_name
-    pre_trained = args.pre_trained
-    
-    model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes)
-
-    weights_dict = torch.load(f"../../../input/pre-trained/{pre_trained}", map_location='cpu')
-        
-    if num_classes != 21:
-        # 官方提供的预训练权重是21类(包括背景)
-        # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
-        for k in list(weights_dict.keys()):
-            if "classifier.4" in k:
-                del weights_dict[k]
-
-    missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
-    if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-        print("missing_keys: ", missing_keys)
-        print("unexpected_keys: ", unexpected_keys)
-
-    return model
 
 
 def main(args):
