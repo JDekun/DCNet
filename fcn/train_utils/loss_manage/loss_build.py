@@ -6,6 +6,7 @@ from .inter_contrastive_loss import  InterPixelContrastLoss
 from .double_contrastive_loss import  DoublePixelContrastLoss
 from .double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 from .double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
+from .aspp_loss import  ASPP_CONTRAST_Loss
 from .simsiam_loss import  simsiam_loss
 
 def criterion(args, inputs, target, epoch):
@@ -24,7 +25,7 @@ def criterion(args, inputs, target, epoch):
             if name == "out":
                 pred_y = x
                 losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
-            elif name == "contrast":
+            elif name == "simsiam_loss":
                 contrast_en = x["contrast_en"]
                 contrast_de = x["contrast_de"]
 

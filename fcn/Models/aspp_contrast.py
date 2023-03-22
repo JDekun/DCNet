@@ -103,23 +103,16 @@ class DeepLabV3(nn.Module):
         # 对比simsiam模块
         if  self.contrast is not None:
             if is_eval == False:
-                # # Plan A
-                # con_de = x["contrast_de"]
-                # con_de = self.contrast(con_de)
-                # contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
                 
-                # contrast["contrast_de"] = contrast_de
-                # contrast["contrast_en"] = features["contrast_en"].detach()
-                # result["simsiam_loss"] = contrast
+                temp = x["aspp"]
 
-                # Plan B
-                contrast_de = x["contrast_de"]
-                con_de = x["contrast_de_out"]
-                contrast_de_out = self.contrast(con_de)
+                aspp_one = self.contrast(temp[0])
+                aspp_two = self.contrast(temp[1])
+                aspp_three = self.contrast(temp[2])
                 
-                contrast["contrast_de"] = contrast_de_out
-                contrast["contrast_en"] = contrast_de.detach()
-                result["simsiam_loss"] = contrast
+                result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
+                result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
+                result["L3"] = [aspp_three, aspp_one, aspp_two.detach(), aspp_three.detach(), target.detach()]
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -194,10 +187,16 @@ class ASPP(nn.Module):
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
+        _aspp = []
+        count = 0
         for conv in self.convs:
-            _res.append(conv(x))
+            temp = conv(x)
+            _res.append(temp)
+            if count >0 and count < 4:
+                _aspp.append(temp)
+            count += 1
         res = torch.cat(_res, dim=1)
-        return self.project(res)
+        return self.project(res), _aspp
 
 
 class DeepLabHead(nn.Sequential):
@@ -214,20 +213,21 @@ class DeepLabHead(nn.Sequential):
         out = OrderedDict()
         count = 0
         for modul in self:
-            x = modul(x)
             if count == 0:
-                out['contrast_de'] = x
-            elif count == 3:
-                out['contrast_de_out'] = x
+                x, aspp = modul(x)
+            else:
+                x = modul(x)
             count =count + 1
         out['out'] = x
+        out['aspp'] = aspp
         return out
+
 
 class contrast_head(nn.Sequential):
     def __init__(self) -> None:
         super(contrast_head, self).__init__(
-            nn.Conv2d(256, 256, 3, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(256, 128, 3, padding=1, bias=False),
+            nn.BatchNorm2d(128),
             nn.ReLU(),
         )
 
@@ -237,7 +237,7 @@ class contrast_head(nn.Sequential):
         return x 
 
 
-def deeplabv3_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
+def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
     backbone = resnet50(replace_stride_with_dilation=[False, True, True])
@@ -276,7 +276,7 @@ def deeplabv3_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     return model
 
 
-def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
+def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth'
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
@@ -310,41 +310,5 @@ def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     classifier = DeepLabHead(out_inplanes, num_classes)
 
     model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
-
-    return model
-
-
-def deeplabv3_mobilenetv3_large(args, aux, num_classes=21, pretrain_backbone=False):
-    # 'mobilenetv3_large_imagenet': 'https://download.pytorch.org/models/mobilenet_v3_large-8738ca79.pth'
-    # 'depv3_mobilenetv3_large_coco': "https://download.pytorch.org/models/deeplabv3_mobilenet_v3_large-fc3c493d.pth"
-    backbone = mobilenet_v3_large(dilated=True)
-
-    if pretrain_backbone:
-        # 载入mobilenetv3 large backbone预训练权重
-        backbone.load_state_dict(torch.load("mobilenet_v3_large.pth", map_location='cpu'))
-
-    backbone = backbone.features
-
-    # Gather the indices of blocks which are strided. These are the locations of C1, ..., Cn-1 blocks.
-    # The first and last blocks are always included because they are the C0 (conv1) and Cn.
-    stage_indices = [0] + [i for i, b in enumerate(backbone) if getattr(b, "is_strided", False)] + [len(backbone) - 1]
-    out_pos = stage_indices[-1]  # use C5 which has output_stride = 16
-    out_inplanes = backbone[out_pos].out_channels
-    aux_pos = stage_indices[-4]  # use C2 here which has output_stride = 8
-    aux_inplanes = backbone[aux_pos].out_channels
-    return_layers = {str(out_pos): "out"}
-    if aux:
-        return_layers[str(aux_pos)] = "aux"
-
-    backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-
-    aux_classifier = None
-    # why using aux: https://github.com/pytorch/vision/issues/4292
-    if aux:
-        aux_classifier = FCNHead(aux_inplanes, num_classes)
-
-    classifier = DeepLabHead(out_inplanes, num_classes)
-
-    model = DeepLabV3(backbone, classifier, aux_classifier)
 
     return model
