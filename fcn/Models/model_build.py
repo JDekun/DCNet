@@ -8,7 +8,7 @@ def create_model(args):
     pre_trained = args.pre_trained
     
 
-    if "resnet50-imagenet" in pre_trained:
+    if  pre_trained in ["resnet50-imagenet.pth", "resnet101-imagenet.pth"]:
         model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=True)
     else:
         model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=False)
@@ -20,6 +20,13 @@ def create_model(args):
             # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
             for k in list(weights_dict.keys()):
                 if "classifier.4" in k:
+                    del weights_dict[k]
+                    
+        if args.weight_only_backbone == True:
+            # 官方提供的预训练权重是21类(包括背景)
+            # 如果训练自己的数据集，将和类别相关的权重删除，防止权重shape不一致报错
+            for k in list(weights_dict.keys()):
+                if "classifier" in k:
                     del weights_dict[k]
 
         missing_keys, unexpected_keys = model.load_state_dict(weights_dict, strict=False)
