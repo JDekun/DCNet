@@ -6,7 +6,7 @@ import torch
 
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from train_utils import optim_manage
-import transforms as T
+
 import numpy as np
 import random
 

@@ -49,7 +49,8 @@ class BaseDataset(data.Dataset):
         return image
 
     def label_transform(self, label):
-        return np.array(label).astype('int32')
+        # return np.array(label).astype('int32')
+        return np.array(label).astype('long')
 
     def pad_image(self, image, h, w, size, padvalue):
         pad_image = image.copy()

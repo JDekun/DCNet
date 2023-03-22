@@ -2,7 +2,7 @@ import os
 
 import torch.utils.data as data
 from PIL import Image
-import transforms as T
+import Datasets.transforms as T
 
 class VOCSegmentation(data.Dataset):
     def __init__(self, voc_root, year="2012", transforms=None, txt_name: str = "train.txt"):
