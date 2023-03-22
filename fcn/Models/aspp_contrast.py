@@ -229,7 +229,7 @@ class ASPPContrast(nn.Sequential):
             nn.Sequential(nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(),
-            nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
+            nn.Conv2d(in_channels, pre_dim, 3, padding=1, bias=False),
             nn.BatchNorm2d(pre_dim),
             nn.ReLU())
         )
