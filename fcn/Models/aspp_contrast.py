@@ -104,11 +104,11 @@ class DeepLabV3(nn.Module):
         if  self.contrast is not None:
             if is_eval == False:
                 
-                temp = x["aspp"]
+                temp = self.contrast(x["aspp"])
 
-                aspp_one = self.contrast(temp[0])
-                aspp_two = self.contrast(temp[1])
-                aspp_three = self.contrast(temp[2])
+                aspp_one = temp[0]
+                aspp_two = temp[1]
+                aspp_three = temp[2]
                 
                 result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
                 result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
@@ -223,20 +223,36 @@ class DeepLabHead(nn.Sequential):
         return out
 
 
-class contrast_head(nn.Sequential):
-    def __init__(self) -> None:
-        super(contrast_head, self).__init__(
-            nn.Conv2d(256, 128, 3, padding=1, bias=False),
-            nn.BatchNorm2d(128),
+class ASPPContrast(nn.Sequential):
+    def __init__(self, in_channels: int, pre_dim: int) -> None:
+        super(ASPPContrast, self).__init__(
+            nn.Sequential(nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
             nn.ReLU(),
+            nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
+            nn.BatchNorm2d(pre_dim),
+            nn.ReLU())
         )
 
+class contrast_head(nn.Module):
+    def __init__(self, in_channels: int, pre_dim: int) -> None:
+        super(contrast_head, self).__init__()
+
+        modules = []
+        for i in range(3):
+            modules.append(ASPPContrast(in_channels, pre_dim))
+
+        self.convs = nn.ModuleList(modules)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        for modul in self:
-            x = modul(x)
-        return x 
-
-
+        _res = []
+        count = 0
+        for conv in self.convs:
+            _res.append(conv(x[count]))
+            count += 1
+        return self.project(_res)
+    
+    
 def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
@@ -262,7 +278,7 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     contrast=None
     if args.contrast != -1:
-        contrast = contrast_head()
+        contrast = contrast_head(256, args.project_dim)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
