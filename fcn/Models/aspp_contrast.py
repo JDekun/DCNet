@@ -249,7 +249,7 @@ class contrast_head(nn.Module):
         count = 0
         for conv in self.convs:
             temp = conv(x[count])
-            temp = F.normalize(temp, p=2, dim=1)
+            temp = F.normalize(temp, dim=1)
             _res.append(temp)
             count += 1
         return _res
