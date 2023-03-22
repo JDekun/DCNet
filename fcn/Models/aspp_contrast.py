@@ -250,7 +250,7 @@ class contrast_head(nn.Module):
         for conv in self.convs:
             _res.append(conv(x[count]))
             count += 1
-        return self.project(_res)
+        return _res
     
     
 def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
