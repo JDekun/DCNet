@@ -1,4 +1,13 @@
 
+def self_pace_epochs(epoch, epochs, num_easy, num_hard):
+
+    rate_hard = (epoch/epochs)
+
+    num_hard_keep = round(rate_hard * num_hard)
+    num_easy_keep = round((1 - rate_hard) * num_easy)
+    
+    return num_easy_keep, num_hard_keep
+
 def self_pace3(epoch, epochs, num_easy, num_hard):
 
     archor = epochs//3
