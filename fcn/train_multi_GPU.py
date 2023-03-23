@@ -285,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--pixel_update_freq", default=10, type=int, help="")
     parser.add_argument('--ddp', default=False, type=str2bool, help='')
     parser.add_argument('--weight_only_backbone', default=False, type=str2bool, help='')
+    parser.add_argument("--sample", default="self_pace3", type=str, help="")
 
     args = parser.parse_args()
 
