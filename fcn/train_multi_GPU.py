@@ -15,7 +15,7 @@ from Models.model_build import create_model
 
 
 # 远程调试
-# import debugpy; debugpy.connect(('10.59.139.1', 5678))
+# import debugpy; debugpy.connect(('10.59.139.1', 42342))
 
 import wandb
 from train_utils.distributed_utils import is_main_process

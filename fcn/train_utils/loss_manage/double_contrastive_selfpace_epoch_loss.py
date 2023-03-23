@@ -428,7 +428,9 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
     contrast_feature = contrast_feature_x
 
     mask = torch.eq(labels_, torch.transpose(y_contrast, 0, 1)).float().cuda()
+    
     mask = mask.repeat(anchor_count, contrast_count)
+    
 
     if queue is not None:
         X_contrast, y_contrast_queue = sample_negative(queue, queue_label) # 并行队列变形成串行
@@ -450,21 +452,27 @@ def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, tempera
     logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
     logits = anchor_dot_contrast - logits_max.detach()
 
-    neg_mask = 1 - mask
-
     logits_mask = torch.ones_like(mask).scatter_(1,
                                                 torch.arange(anchor_num * anchor_count).view(-1, 1).cuda(),
                                                 0)
-    mask = mask * logits_mask
-
-    neg_logits = torch.exp(logits) * neg_mask
-    neg_logits = neg_logits.sum(1, keepdim=True)
-
+    
+    ops_mask = mask * logits_mask
+    neg_mask = 1 - mask
+    
     exp_logits = torch.exp(logits)
+
+    neg_logits = exp_logits * neg_mask
+    neg_logits = neg_logits.sum(1, keepdim=True)
+    
 
     log_prob = logits - torch.log(exp_logits + neg_logits)
 
-    mean_log_prob_pos = (mask * log_prob).sum(1) / mask.sum(1)
+    ops_mask_num = ops_mask.sum(1)
+    for i in range(len(ops_mask_num)):
+        if ops_mask_num[i] == 0:
+            ops_mask_num[i] = 1 
+
+    mean_log_prob_pos = (ops_mask * log_prob).sum(1) / ops_mask_num
 
     loss = - (temperature / base_temperature) * mean_log_prob_pos
     loss = loss.mean()

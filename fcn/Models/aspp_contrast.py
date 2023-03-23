@@ -92,7 +92,6 @@ class DeepLabV3(nn.Module):
         features = self.backbone(x)
 
         result = OrderedDict()
-        contrast = OrderedDict()
 
         x = features["out"]
         x = self.classifier(x)
@@ -130,7 +129,7 @@ class FCNHead(nn.Sequential):
         super(FCNHead, self).__init__(
             nn.Conv2d(in_channels, inter_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(inter_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Dropout(0.1),
             nn.Conv2d(inter_channels, channels, 1)
         )
@@ -141,7 +140,7 @@ class ASPPConv(nn.Sequential):
         super(ASPPConv, self).__init__(
             nn.Conv2d(in_channels, out_channels, 3, padding=dilation, dilation=dilation, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
 
@@ -151,7 +150,7 @@ class ASPPPooling(nn.Sequential):
             nn.AdaptiveAvgPool2d(1),
             nn.Conv2d(in_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU()
+            nn.ReLU(inplace=True)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -167,7 +166,7 @@ class ASPP(nn.Module):
         modules = [
             nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
                           nn.BatchNorm2d(out_channels),
-                          nn.ReLU())
+                          nn.ReLU(inplace=True))
         ]
 
         rates = tuple(atrous_rates)
@@ -181,7 +180,7 @@ class ASPP(nn.Module):
         self.project = nn.Sequential(
             nn.Conv2d(len(self.convs) * out_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
 
@@ -205,7 +204,7 @@ class DeepLabHead(nn.Sequential):
             ASPP(in_channels, [12, 24, 36]),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(256, num_classes, 1)
         )
 
@@ -226,13 +225,13 @@ class DeepLabHead(nn.Sequential):
 class ASPPContrast(nn.Sequential):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
         super(ASPPContrast, self).__init__(
-            nn.Sequential(nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
+            nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
-            nn.ReLU(),
+            nn.ReLU(inplace=True),
             nn.Conv2d(in_channels, pre_dim, 3, padding=1, bias=False),
             nn.BatchNorm2d(pre_dim),
-            nn.ReLU())
-        )
+            nn.ReLU(inplace=True)
+        ) 
 
 class contrast_head(nn.Module):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
@@ -248,8 +247,7 @@ class contrast_head(nn.Module):
         _res = []
         count = 0
         for conv in self.convs:
-            temp = conv(x[count])
-            temp = F.normalize(temp, dim=1)
+            temp = F.normalize(conv(x[count]), dim=1)
             _res.append(temp)
             count += 1
         return _res
