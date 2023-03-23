@@ -316,7 +316,7 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     contrast=None
     if args.contrast != -1:
-        contrast = contrast_head()
+        contrast = contrast_head(256, args.project_dim)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
