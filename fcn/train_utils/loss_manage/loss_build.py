@@ -79,7 +79,7 @@ def criterion(args, inputs, target, epoch):
     if len(losses) == 2:
         return losses['out'] + losses['simsiam_loss']
     
-    loss = losses['out'] * 0.5
+    loss = losses['out']
 
     for name, x in losses.items():
         if name != "out" and args.contrast > epoch:
