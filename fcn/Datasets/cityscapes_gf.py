@@ -114,8 +114,8 @@ class Cityscapes(BaseDataset):
         image, label = self.gen_sample(image, label, 
                                 self.multi_scale, self.flip)
         
-        if 'val' in self.list_path:
-            label = label.to(torch.long)
+        # if 'val' in self.list_path:
+        #     label = label.to(torch.long)
 
         return image.copy(), label.copy()
 

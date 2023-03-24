@@ -64,7 +64,7 @@ def datasets_load(args):
         crop_size = (1024, 512)
         train_dataset = Cityscapes(
                             root=args.data_path,
-                            list_path="datasets/list/train.lst",
+                            list_path="Datasets/list/train.lst",
                             num_samples=None,
                             num_classes=19,
                             multi_scale=True,
@@ -78,7 +78,7 @@ def datasets_load(args):
         test_size = (2048, 1024)
         val_dataset = Cityscapes(
                             root=args.data_path,
-                            list_path="datasets/list/val.lst",
+                            list_path="Datasets/list/val.lst",
                             num_samples=None,
                             num_classes=19,
                             multi_scale=False,

@@ -3,8 +3,8 @@ import torch
 
 from Models import fcn_resnet50
 from train_utils import evaluate
-from fcn.datasets.pascal_voc import VOCSegmentation
-import transforms as T
+from Datasets.pascal_voc import VOCSegmentation
+import Datasets.transforms as T
 
 
 class SegmentationPresetEval:

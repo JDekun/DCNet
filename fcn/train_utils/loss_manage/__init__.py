@@ -3,4 +3,5 @@ from .inter_contrastive_loss import  InterPixelContrastLoss
 from .double_contrastive_loss import  DoublePixelContrastLoss
 from .double_contrastive_selfpace_loss import  SELFPACEDoublePixelContrastLoss
 from .double_contrastive_selfpace_epoch_loss import  EPOCHSELFPACEDoublePixelContrastLoss
+from .aspp_loss import  ASPP_CONTRAST_Loss
 from .loss_build import criterion

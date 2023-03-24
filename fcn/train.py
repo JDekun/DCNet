@@ -6,8 +6,8 @@ import torch
 
 from Models import fcn_resnet50
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler
-from datasets.pascal_voc import VOCSegmentation
-import transforms as T
+from Datasets.pascal_voc import VOCSegmentation
+import Datasets.transforms as T
 
 
 class SegmentationPresetTrain:

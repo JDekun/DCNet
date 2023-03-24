@@ -6,7 +6,7 @@ import torch
 
 from train_utils import train_one_epoch, evaluate, create_lr_scheduler, init_distributed_mode, save_on_master, mkdir
 from train_utils import optim_manage
-import transforms as T
+
 import numpy as np
 import random
 
@@ -15,7 +15,7 @@ from Models.model_build import create_model
 
 
 # 远程调试
-# import debugpy; debugpy.connect(('10.59.139.1', 5678))
+# import debugpy; debugpy.connect(('10.59.139.1', 42342))
 
 import wandb
 from train_utils.distributed_utils import is_main_process
@@ -285,6 +285,7 @@ if __name__ == "__main__":
     parser.add_argument("--pixel_update_freq", default=10, type=int, help="")
     parser.add_argument('--ddp', default=False, type=str2bool, help='')
     parser.add_argument('--weight_only_backbone', default=False, type=str2bool, help='')
+    parser.add_argument("--sample", default="self_pace3", type=str, help="")
 
     args = parser.parse_args()
 
