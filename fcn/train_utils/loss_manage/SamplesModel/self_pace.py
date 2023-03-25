@@ -2,7 +2,7 @@
 def self_pace_epochs(epoch, epochs, num_easy, num_hard):
 
     rate_hard = (epoch/epochs)
-    rate_easy_threshold = (1 - rate_hard) if (1 - rate_hard) > 1/2 else 1/2
+    rate_easy_threshold = (1 - rate_hard) if (1 - rate_hard) > 1/4 else 1/4
 
     num_hard_keep = round(rate_hard * num_hard)
     num_easy_keep = round(rate_easy_threshold * num_easy)
