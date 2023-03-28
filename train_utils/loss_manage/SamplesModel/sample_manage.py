@@ -27,20 +27,12 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
         this_y = predict[ii]
         this_classes = classes[ii]
 
-        for cls_id in this_classes:
-            hard_indices = ((this_y_hat == cls_id) & (this_y != cls_id)).nonzero()
-            easy_indices = ((this_y_hat == cls_id) & (this_y == cls_id)).nonzero()
+        for cls_id in this_classes:    
 
-            num_hard = hard_indices.shape[0]
-            num_easy = easy_indices.shape[0]
-
-            num_easy_keep, num_hard_keep = eval("SamplesModel." + type)(epoch, epochs, num_easy, num_hard)
-
-            perm = torch.randperm(num_hard)
-            hard_indices = hard_indices[perm[:num_hard_keep]]
-            perm = torch.randperm(num_easy)
-            easy_indices = easy_indices[perm[:num_easy_keep]] 
-            indices = torch.cat((hard_indices, easy_indices), dim=0)
+            if "self_pace" in type:
+                indices = eval("SamplesModel." + type)(epoch, epochs, this_y_hat, this_y, cls_id)
+            else:
+                indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
 
             temp = indices.shape[0]
             if temp != 0:
