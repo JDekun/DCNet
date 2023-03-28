@@ -13,7 +13,7 @@ def create_model(args):
     else:
         model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=False)
 
-        weights_dict = torch.load(f"../../../input/pre-trained/{pre_trained}", map_location='cpu')
+        weights_dict = torch.load(f"../../input/pre-trained/{pre_trained}", map_location='cpu')
             
         if num_classes != 21:
             # 官方提供的预训练权重是21类(包括背景)

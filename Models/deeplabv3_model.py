@@ -79,23 +79,47 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
+        self.contrast = contrast
 
-    def forward(self, x: Tensor) -> Dict[str, Tensor]:
+    def forward(self, x: Tensor, target=None, is_eval = False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
         # contract: features is a dict of tensors
         features = self.backbone(x)
 
         result = OrderedDict()
+        contrast = OrderedDict()
+
         x = features["out"]
         x = self.classifier(x)
         # 使用双线性插值还原回原图尺度
-        x = F.interpolate(x, size=input_shape, mode='bilinear', align_corners=False)
-        result["out"] = x
+        out = F.interpolate(x["out"], size=input_shape, mode='bilinear', align_corners=False)
+        result["out"] = out
+
+        # 对比simsiam模块
+        if  self.contrast is not None:
+            if is_eval == False:
+                # # Plan A
+                # con_de = x["contrast_de"]
+                # con_de = self.contrast(con_de)
+                # contrast_de = F.interpolate(con_de, size=(120,120), mode='bilinear', align_corners=False)
+                
+                # contrast["contrast_de"] = contrast_de
+                # contrast["contrast_en"] = features["contrast_en"].detach()
+                # result["simsiam_loss"] = contrast
+
+                # Plan B
+                contrast_de = x["contrast_de"]
+                con_de = x["contrast_de_out"]
+                contrast_de_out = self.contrast(con_de)
+                
+                contrast["contrast_de"] = contrast_de_out
+                contrast["contrast_en"] = contrast_de.detach()
+                result["simsiam_loss"] = contrast
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -186,23 +210,59 @@ class DeepLabHead(nn.Sequential):
             nn.Conv2d(256, num_classes, 1)
         )
 
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        out = OrderedDict()
+        count = 0
+        for modul in self:
+            x = modul(x)
+            if count == 0:
+                out['contrast_de'] = x
+            elif count == 3:
+                out['contrast_de_out'] = x
+            count =count + 1
+        out['out'] = x
+        return out
 
-def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
+class contrast_head(nn.Sequential):
+    def __init__(self) -> None:
+        super(contrast_head, self).__init__(
+            nn.Conv2d(256, 256, 3, padding=1, bias=False),
+            nn.BatchNorm2d(256),
+            nn.ReLU(),
+        )
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        for modul in self:
+            x = modul(x)
+        return x 
+
+
+def deeplabv3_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
     backbone = resnet50(replace_stride_with_dilation=[False, True, True])
 
+
     if pretrain_backbone:
+        print("loading resnet50-backnone weight...")
         # 载入resnet50 backbone预训练权重
-        backbone.load_state_dict(torch.load("resnet50.pth", map_location='cpu'))
+        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet50_imagenet.pth", map_location='cpu'))
+        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+            print("missing_keys: ", missing_keys)
+            print("unexpected_keys: ", unexpected_keys)
 
     out_inplanes = 2048
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
+    return_layers['layer1'] = 'contrast_en'
     if aux:
         return_layers['layer3'] = 'aux'
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+    contrast=None
+    if args.contrast != -1:
+        contrast = contrast_head()
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -211,27 +271,36 @@ def deeplabv3_resnet50(aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
 
     return model
 
 
-def deeplabv3_resnet101(aux, num_classes=21, pretrain_backbone=False):
+def deeplabv3_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth'
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
 
     if pretrain_backbone:
         # 载入resnet101 backbone预训练权重
-        backbone.load_state_dict(torch.load("resnet101.pth", map_location='cpu'))
-
+        print("loading resnet101-backnone weight...")
+        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet101_imagenet.pth", map_location='cpu'))
+        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+            print("missing_keys: ", missing_keys)
+            print("unexpected_keys: ", unexpected_keys)
+            
     out_inplanes = 2048
     aux_inplanes = 1024
 
     return_layers = {'layer4': 'out'}
+    return_layers['layer1'] = 'contrast_en'
     if aux:
         return_layers['layer3'] = 'aux'
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+
+    contrast=None
+    if args.contrast != -1:
+        contrast = contrast_head()
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -240,12 +309,12 @@ def deeplabv3_resnet101(aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
 
     return model
 
 
-def deeplabv3_mobilenetv3_large(aux, num_classes=21, pretrain_backbone=False):
+def deeplabv3_mobilenetv3_large(args, aux, num_classes=21, pretrain_backbone=False):
     # 'mobilenetv3_large_imagenet': 'https://download.pytorch.org/models/mobilenet_v3_large-8738ca79.pth'
     # 'depv3_mobilenetv3_large_coco': "https://download.pytorch.org/models/deeplabv3_mobilenet_v3_large-fc3c493d.pth"
     backbone = mobilenet_v3_large(dilated=True)
