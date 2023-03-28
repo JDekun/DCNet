@@ -59,7 +59,7 @@ def datasets_load(args):
         val_dataset = VOCSegmentation(args.data_path,
                                     year="2012",
                                     transforms=get_transform(train=False),
-                                    txt_name="test.txt")
+                                    txt_name="val.txt")
     elif "cityscapes" in args.data_path:
         crop_size = (1024, 512)
         train_dataset = Cityscapes(
