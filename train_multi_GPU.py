@@ -98,6 +98,8 @@ def main(args):
         os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
         os.environ['WANDB_MODE'] = args.wandb_model
         wandb.init(project="DCNet")
+        if args.resume and args.run_name:
+            wandb.init(name=args.run_name)
         wandb.config.update(args)
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
@@ -268,6 +270,7 @@ if __name__ == "__main__":
     # wandb设置
     parser.add_argument('--wandb', default=False, type=str2bool, help='w/o wandb')
     parser.add_argument('--wandb_model', default='dryrun', type=str, help='run or dryrun')
+    parser.add_argument('--run_name', default='', type=str, help='run name')
 
     # DCNet专属设计
     parser.add_argument('--model_name', default='fcn_resnet50', type=str, help='fcn_resnet50 dcnet_resnet50')
