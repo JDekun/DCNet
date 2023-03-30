@@ -53,7 +53,7 @@ def datasets_load(args):
         train_dataset = VOCSegmentation(args.data_path,
                                         year="2012",
                                         transforms=get_transform(train=True),
-                                        txt_name="trainval.txt")
+                                        txt_name="trainaug.txt")
         # load validation data set
         # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> val.txt
         val_dataset = VOCSegmentation(args.data_path,

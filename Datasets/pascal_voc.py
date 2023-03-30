@@ -11,7 +11,11 @@ class VOCSegmentation(data.Dataset):
         root = os.path.join(voc_root)
         assert os.path.exists(root), "path '{}' does not exist.".format(root)
         image_dir = os.path.join(root, 'JPEGImages')
-        mask_dir = os.path.join(root, 'SegmentationClass')
+        if txt_name in ["train.txt", "val.txt"]:
+            mask_dir = os.path.join(root, 'SegmentationClass')
+        elif txt_name == "trainaug.txt":
+            mask_dir = os.path.join(root, 'SegmentationClassAug')
+
 
         txt_path = os.path.join(root, "ImageSets", "Segmentation", txt_name)
         assert os.path.exists(txt_path), "file '{}' does not exist.".format(txt_path)
