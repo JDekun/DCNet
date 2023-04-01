@@ -147,72 +147,79 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
 
             code_queue_label[lb, ptr:ptr + K] = lbe
 
-def Contrastive(feats_, feats_y_, labels_, queue=None, queue_label=None, temperature: float = 0.1, base_temperature: float = 0.07):
-    anchor_num, n_view = feats_.shape[0], feats_.shape[1]
+def Contrastive(feats_x, feats_y, labels_, queue=None, queue_label=None, type: str = 'double', temperature: float = 0.1, base_temperature: float = 0.07):
+    anchor_num, n_view = feats_x.shape[0], feats_x.shape[1]
 
+    feature_x = torch.cat(torch.unbind(feats_x, dim=1), dim=0)
+    feature_y = torch.cat(torch.unbind(feats_y, dim=1), dim=0)
+
+    # 默认采用 type == "double" 对比
+    anchor_feature = torch.cat([feature_x, feature_y], dim=0)
+    contrast_feature = anchor_feature
+    anchor_count = n_view * 2
+    contrast_count = n_view * 2
+
+    if type == "inter":
+        anchor_feature = feature_x
+        contrast_feature= feature_y
+        anchor_count = n_view
+        contrast_count = n_view
+    elif type == "intra":
+        anchor_feature = feature_x
+        contrast_feature= feature_x
+        anchor_count = n_view
+        contrast_count = n_view
+         
+    # 基础mask
     labels_ = labels_.contiguous().view(-1, 1)
-    contrast_feature_y = torch.cat(torch.unbind(feats_y_, dim=1), dim=0)
-
-    # 1*N
-    anchor_feature = contrast_feature_y
-    anchor_count = n_view
-    # n*n
-    # anchor_feature = contrast_feature
-    # anchor_count = contrast_count
-  
-    y_contrast = labels_
-    contrast_count = n_view
-    contrast_feature_x = torch.cat(torch.unbind(feats_, dim=1), dim=0)
-    # contrast_feature = torch.cat([contrast_feature_y, contrast_feature_x], dim=0)
-    contrast_feature = contrast_feature_x
-
-    mask = torch.eq(labels_, torch.transpose(y_contrast, 0, 1)).float().cuda()
-    
+    labels_T = labels_
+    mask = torch.eq(labels_, torch.transpose(labels_T, 0, 1)).float().cuda()
     mask = mask.repeat(anchor_count, contrast_count)
     
-
     if queue is not None:
-        X_contrast, y_contrast_queue = sample_negative(queue, queue_label) # 并行队列变形成串行
+        queue_feature, queue_label = sample_negative(queue, queue_label) # 并行队列变形成串行
 
-        y_contrast_queue = y_contrast_queue.contiguous().view(-1, 1)
-        contrast_count_queue = 1
-        contrast_feature = torch.cat([contrast_feature, X_contrast], dim=0)
-        # contrast_feature = X_contrast
+        # 增加queue特征
+        contrast_feature = torch.cat([contrast_feature, queue_feature], dim=0)
 
-        mask_queue = torch.eq(labels_, torch.transpose(y_contrast_queue, 0, 1)).float().cuda()
-        mask_queue = mask_queue.repeat(anchor_count, contrast_count_queue)
-
+        # 增加queue mask
+        queue_label = queue_label.contiguous().view(-1, 1)
+        mask_queue = torch.eq(labels_, torch.transpose(queue_label, 0, 1)).float().cuda()
+        mask_queue = mask_queue.repeat(anchor_count, 1)
+        # 更新mask
         mask = torch.cat([mask, mask_queue], dim=1)
-        # mask = mask_queue
 
 
-    anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)),
-                                    temperature)
+    # 计算对比logits
+    anchor_dot_contrast = torch.div(torch.matmul(anchor_feature, torch.transpose(contrast_feature, 0, 1)), temperature)
     logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
     logits = anchor_dot_contrast - logits_max.detach()
 
+    # mask对角线logits(自身对比部分)
     logits_mask = torch.ones_like(mask).scatter_(1,
                                                 torch.arange(anchor_num * anchor_count).view(-1, 1).cuda(),
                                                 0)
-    
+    # 正样本mask
     ops_mask = mask * logits_mask
+    if type == "inter":
+        ops_mask = mask
+    # 负样本mask
     neg_mask = 1 - mask
-    
-    exp_logits = torch.exp(logits)
 
+    # 负样本对比总和
+    exp_logits = torch.exp(logits)
     neg_logits = exp_logits * neg_mask
     neg_logits = neg_logits.sum(1, keepdim=True)
-    
 
-    log_prob = logits - torch.log(exp_logits + neg_logits)
-
+    # 防止出现都正样本个数为0的情况
     ops_mask_num = ops_mask.sum(1)
     for i in range(len(ops_mask_num)):
         if ops_mask_num[i] == 0:
             ops_mask_num[i] = 1 
 
+    # 计算对比损失
+    log_prob = logits - torch.log(exp_logits + neg_logits)
     mean_log_prob_pos = (ops_mask * log_prob).sum(1) / ops_mask_num
-
     loss = - (temperature / base_temperature) * mean_log_prob_pos
     loss = loss.mean()
 
