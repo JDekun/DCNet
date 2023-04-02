@@ -210,6 +210,7 @@ if __name__ == "__main__":
 
     # 训练文件的根目录(VOCdevkit)
     parser.add_argument('--data_path', default='pascal-voc-2012', help='dataset')
+    parser.add_argument("--data_train_type)", default="train.txt", type=str, help="")
     # 训练设备类型
     parser.add_argument('--device', default='cuda', help='device')
     # 检测目标类别数(不包含背景)
