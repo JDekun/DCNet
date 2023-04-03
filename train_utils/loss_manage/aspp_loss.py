@@ -295,7 +295,7 @@ def ASPP_CONTRAST_Loss(args, epoch, epochs, x, labels=None, predict=None):
         #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
         #                     decode_queue=queue_origin['decode_queue'],
         #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-        dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
+        dequeue_and_enqueue_self_seri(args, feats_y_que_, feats_que_, labels_queue_,
                                         encode_queue=queue_origin['encode_queue'],
                                         encode_queue_ptr=queue_origin['encode_queue_ptr'],
                                         code_queue_label=queue_origin['code_queue_label'])
