@@ -147,7 +147,7 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
 
             code_queue_label[lb, ptr:ptr + K] = lbe
 
-def Contrastive(feats_x, feats_y, labels_, queue=None, queue_label=None, type: str = 'inter', temperature: float = 0.1, base_temperature: float = 0.07):
+def Contrastive(feats_x, feats_y, labels_, queue=None, queue_label=None, type: str = 'intra', temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_x.shape[0], feats_x.shape[1]
 
     feature_x = torch.cat(torch.unbind(feats_x, dim=1), dim=0)
@@ -295,7 +295,7 @@ def ASPP_CONTRAST_Loss(args, epoch, epochs, x, labels=None, predict=None):
         #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
         #                     decode_queue=queue_origin['decode_queue'],
         #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-        dequeue_and_enqueue_self_seri(args, feats_y_que_, feats_que_, labels_queue_,
+        dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
                                         encode_queue=queue_origin['encode_queue'],
                                         encode_queue_ptr=queue_origin['encode_queue_ptr'],
                                         code_queue_label=queue_origin['code_queue_label'])
