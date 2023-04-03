@@ -147,7 +147,7 @@ def dequeue_and_enqueue_self_seri(args, keys, key_y, labels,
 
             code_queue_label[lb, ptr:ptr + K] = lbe
 
-def Contrastive(feats_x, feats_y, labels_, queue=None, queue_label=None, type: str = 'double', temperature: float = 0.1, base_temperature: float = 0.07):
+def Contrastive(feats_x, feats_y, labels_, queue=None, queue_label=None, type: str = 'inter', temperature: float = 0.1, base_temperature: float = 0.07):
     anchor_num, n_view = feats_x.shape[0], feats_x.shape[1]
 
     feature_x = torch.cat(torch.unbind(feats_x, dim=1), dim=0)

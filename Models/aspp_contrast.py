@@ -79,12 +79,28 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
+        self.r = memory_size
+        num_classes = 1
+        dim = 128
+
+        if self.contrast != -1 and self.r > 0:        
+            self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code3_queue_label", torch.randn(num_classes, self.r))
+
+            self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code2_queue_label", torch.randn(num_classes, self.r))
+                
+            self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code1_queue_label", torch.randn(num_classes, self.r)) 
 
     def forward(self, x: Tensor, target=None, is_eval = False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -100,18 +116,17 @@ class DeepLabV3(nn.Module):
         result["out"] = out
 
         # 对比simsiam模块
-        if  self.contrast is not None:
-            if is_eval == False:
+        if  self.contrast is not None and is_eval == False:
                 
-                temp = self.contrast(x["aspp"])
+            temp = self.contrast(x["aspp"])
 
-                aspp_one = temp[0]
-                aspp_two = temp[1]
-                aspp_three = temp[2]
-                
-                result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
-                result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
-                result["L3"] = [aspp_three, aspp_one, aspp_two.detach(), aspp_three.detach(), target.detach()]
+            aspp_one = temp[0]
+            aspp_two = temp[1]
+            aspp_three = temp[2]
+            
+            result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
+            result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
+            result["L3"] = [aspp_three, aspp_one, aspp_two.detach(), aspp_three.detach(), target.detach()]
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -287,7 +302,9 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
+    memory_size = args.memory_size
+
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size)
 
     return model
 
@@ -325,6 +342,8 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast)
+    memory_size = args.memory_size
+
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size)
 
     return model
