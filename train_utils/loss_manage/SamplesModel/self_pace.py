@@ -1,6 +1,6 @@
 import torch
 
-def self_pace_sample(epoch, epochs, this_y_hat, this_y, cls_id):
+def self_pace_ploy(epoch, epochs, this_y_hat, this_y, cls_id):
     hard_indices = ((this_y_hat == cls_id) & (this_y != cls_id)).nonzero()
     easy_indices = ((this_y_hat == cls_id) & (this_y == cls_id)).nonzero()
     num_hard = hard_indices.shape[0]
@@ -8,7 +8,7 @@ def self_pace_sample(epoch, epochs, this_y_hat, this_y, cls_id):
     sum = num_hard + num_easy
 
     # >>>> 核心修改部分
-    n = 4
+    n = 8
     easy_rate = (num_easy/sum) # ↑
     hard_rate = (num_hard/sum) # ↓
 
@@ -38,8 +38,6 @@ def self_pace_step(epoch, epochs, this_y_hat, this_y, cls_id):
     step = (epoch/epochs)
     rate_hard = step**(1/n) # y= x^0.5
     rate_easy = (step + 1)**(-n)  # y= (x+1)^-2
-    print("rate_hard", rate_hard)
-    print("rate_easy", rate_easy)
  
     num_hard_keep = round(rate_hard * num_hard)
     num_easy_keep = round(rate_easy * num_easy)
