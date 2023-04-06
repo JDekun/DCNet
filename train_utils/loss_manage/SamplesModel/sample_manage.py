@@ -29,7 +29,9 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
 
         for cls_id in this_classes:    
 
-            if "self_pace" in type:
+            if "adapt_excite" in type:
+                indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
+            elif "self_pace" in type:
                 indices = eval("SamplesModel." + type)(epoch, epochs, this_y_hat, this_y, cls_id)
             else:
                 indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
