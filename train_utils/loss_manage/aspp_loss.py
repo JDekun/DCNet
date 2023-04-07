@@ -239,7 +239,7 @@ def ASPP_CONTRAST_Loss(args, epoch, epochs, x, labels=None, predict=None):
     queue=None
     queue_label=None
     if args.memory_size:
-        queue_origin = x[5]
+        queue_origin = x[2]
         # queue = queue_origin
 
         if "encode_queue" in queue_origin:

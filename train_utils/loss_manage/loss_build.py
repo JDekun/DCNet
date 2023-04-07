@@ -38,11 +38,9 @@ def criterion(args, inputs, target, epoch):
                 loss = simsiam_loss(criterion, contrast_en, contrast_de, targ, ignore_index=255)
                 losses[name] = loss
             else:
-                # proj_x = x[0]
-                proj_y = x[1]
-                
+                proj_x = x[0]
 
-                h, w = proj_y.shape[2], proj_y.shape[3]
+                h, w = proj_x.shape[2], proj_x.shape[3]
                 pred = F.interpolate(input=pred_y, size=(h, w), mode='bilinear', align_corners=False)
                 _, predict = torch.max(pred, 1)
                 

@@ -9,6 +9,8 @@ from .resnet_backbone import resnet50, resnet101
 from .mobilenet_backbone import mobilenet_v3_large
 
 from  Models.Attention.CBAM import CBAMBlock
+from  Models.Attention.PSA import PSA
+from  Models.Attention.SelfAttention import ScaledDotProductAttention
 
 
 class IntermediateLayerGetter(nn.ModuleDict):
@@ -81,13 +83,13 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, cbam=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, attention=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
-        self.attention = cbam
+        self.attention = attention
         self.r = memory_size
         num_classes = 1
         dim = 128
@@ -120,21 +122,24 @@ class DeepLabV3(nn.Module):
 
         # 对比simsiam模块
         if  self.contrast is not None and is_eval == False:
-                
             temp = self.contrast(x["aspp"])
-
             aspp_one = temp[0]
             aspp_two = temp[1]
             aspp_three = temp[2]
 
-            if  self.cbam is not None:
+            if self.attention == "cbam":
                 aspp_one = self.attention(aspp_one)
                 aspp_two = self.attention(aspp_two)
                 aspp_three = self.attention(aspp_three)
-            
-            result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
-            result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
-            result["L3"] = [aspp_three, aspp_one, aspp_two.detach(), aspp_three.detach(), target.detach()]
+            elif self.attention == "selfattention":
+                aspp_one = self.attention(aspp_one, aspp_two, aspp_three)
+
+            if self.attention == "selfattention":
+                result["L1"] = [aspp_one, aspp_one]
+            else:
+                result["L1"] = [aspp_one, aspp_two]
+                result["L2"] = [aspp_two, aspp_three]
+                result["L3"] = [aspp_three, aspp_one]
 
         if self.aux_classifier is not None:
             x = features["aux"]
@@ -342,8 +347,10 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     contrast=None
     if args.contrast != -1:
         contrast = contrast_head(256, args.project_dim)
-        if args.attention:
-            cbam = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+        if args.attention == "cbam":
+            attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+        elif args.attention == "selfattention":
+            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -354,6 +361,6 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     memory_size = args.memory_size
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, cbam)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention)
 
     return model
