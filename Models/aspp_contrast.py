@@ -83,13 +83,14 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, attention=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, attention=None, attention_name=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
         self.attention = attention
+        self.attention_name = attention_name
         self.r = memory_size
         num_classes = 1
         dim = 128
@@ -127,11 +128,11 @@ class DeepLabV3(nn.Module):
             aspp_two = temp[1]
             aspp_three = temp[2]
 
-            if self.attention == "cbam":
+            if self.attention_name == "cbam":
                 aspp_one = self.attention(aspp_one)
                 aspp_two = self.attention(aspp_two)
                 aspp_three = self.attention(aspp_three)
-            elif self.attention == "selfattention":
+            elif self.attention_name == "selfattention":
                 aspp_one = self.attention(aspp_one, aspp_two, aspp_three)
 
             if self.attention == "selfattention":
@@ -345,11 +346,13 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     contrast=None
+    attention=None
+    attention_name = args.attention
     if args.contrast != -1:
         contrast = contrast_head(256, args.project_dim)
-        if args.attention == "cbam":
+        if attention_name == "cbam":
             attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
-        elif args.attention == "selfattention":
+        elif attention_name == "selfattention":
             attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
@@ -361,6 +364,6 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     memory_size = args.memory_size
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
 
     return model
