@@ -8,6 +8,8 @@ from torch.nn import functional as F
 from .resnet_backbone import resnet50, resnet101
 from .mobilenet_backbone import mobilenet_v3_large
 
+from  Models.Attention.CBAM import CBAMBlock
+
 
 class IntermediateLayerGetter(nn.ModuleDict):
     """
@@ -79,12 +81,13 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, cbam=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
+        self.cbam = cbam
         self.r = memory_size
         num_classes = 1
         dim = 128
@@ -123,6 +126,11 @@ class DeepLabV3(nn.Module):
             aspp_one = temp[0]
             aspp_two = temp[1]
             aspp_three = temp[2]
+
+            if  self.cbam is not None:
+                aspp_one = self.cbam(aspp_one)
+                aspp_two = self.cbam(aspp_two)
+                aspp_three = self.cbam(aspp_three)
             
             result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
             result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
@@ -334,6 +342,8 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     contrast=None
     if args.contrast != -1:
         contrast = contrast_head(256, args.project_dim)
+        if args.attention:
+            cbam = CBAMBlock(channel=128,reduction=8,kernel_size=7)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -344,6 +354,6 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     memory_size = args.memory_size
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, cbam)
 
     return model

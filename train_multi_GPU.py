@@ -290,6 +290,7 @@ if __name__ == "__main__":
     parser.add_argument('--ddp', default=False, type=str2bool, help='')
     parser.add_argument('--weight_only_backbone', default=False, type=str2bool, help='')
     parser.add_argument("--sample", default="self_pace3", type=str, help="")
+    parser.add_argument('--attention', default=False, type=str2bool, help='')
 
     args = parser.parse_args()
 
