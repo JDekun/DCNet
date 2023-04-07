@@ -13,7 +13,7 @@ def optim_manage(args, model_without_ddp):
     if args.contrast != -1:
         if args.loss_name in ['simsiam', 'aspp_loss']:
             params_simsiam = [p for p in model_without_ddp.contrast.parameters() if p.requires_grad]
-            params_to_optimize.append({"params": params_simsiam, "lr": args.lr * 10})
+            params_to_optimize.append({"params": params_simsiam, "lr": args.lr * 100})
         elif args.loss_name == "intra":
             if args.L3_loss != 0:
                 params_L3u = [p for p in model_without_ddp.ProjectorHead_3u.parameters() if p.requires_grad]
