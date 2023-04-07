@@ -49,8 +49,8 @@ class ScaledDotProductAttention(nn.Module):
     def forward(self, queries, keys, values, attention_mask=None, attention_weights=None):
         b_s, c, h, w = queries.shape
         queries = queries.permute(0, 2, 3, 1).contiguous().view(b_s, h*w, c)
-        queries = keys.permute(0, 2, 3, 1).contiguous().view(b_s, h*w, c)
-        queries = values.permute(0, 2, 3, 1).contiguous().view(b_s, h*w, c)
+        keys = keys.permute(0, 2, 3, 1).contiguous().view(b_s, h*w, c)
+        values = values.permute(0, 2, 3, 1).contiguous().view(b_s, h*w, c)
         '''
         Computes
         :param queries: Queries (b_s, nq, d_model)
