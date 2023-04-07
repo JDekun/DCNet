@@ -87,7 +87,7 @@ class DeepLabV3(nn.Module):
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
-        self.cbam = cbam
+        self.attention = cbam
         self.r = memory_size
         num_classes = 1
         dim = 128
@@ -128,9 +128,9 @@ class DeepLabV3(nn.Module):
             aspp_three = temp[2]
 
             if  self.cbam is not None:
-                aspp_one = self.cbam(aspp_one)
-                aspp_two = self.cbam(aspp_two)
-                aspp_three = self.cbam(aspp_three)
+                aspp_one = self.attention(aspp_one)
+                aspp_two = self.attention(aspp_two)
+                aspp_three = self.attention(aspp_three)
             
             result["L1"] = [aspp_one, aspp_two, aspp_one.detach(), aspp_two.detach(), target.detach()]
             result["L2"] = [aspp_two, aspp_three, aspp_two.detach(), aspp_three.detach(), target.detach()]
