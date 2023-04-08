@@ -133,7 +133,7 @@ class DeepLabV3(nn.Module):
                 aspp_two = self.attention(aspp_two)
                 aspp_three = self.attention(aspp_three)
             elif self.attention_name == "selfattention":
-                aspp_one = self.attention(aspp_one, aspp_two, aspp_three)
+                aspp_one = self.attention(aspp_three, aspp_two, aspp_one)
 
             if self.attention == "selfattention":
                 result["L1"] = [aspp_one, aspp_one]
