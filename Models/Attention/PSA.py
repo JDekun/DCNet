@@ -45,12 +45,12 @@ class PSA(nn.Module):
     def forward(self, x):
         b, c, h, w = x.size()
 
-        #Step1:SPC module
+        #Step1:SPC module 多尺度
         SPC_out=x.view(b,self.S,c//self.S,h,w) #bs,s,ci,h,w
         for idx,conv in enumerate(self.convs):
             SPC_out[:,idx,:,:,:]=conv(SPC_out[:,idx,:,:,:])
 
-        #Step2:SE weight
+        #Step2:SE weight 通道注意力
         se_out=[]
         for idx,se in enumerate(self.se_blocks):
             se_out.append(se(SPC_out[:,idx,:,:,:]))
@@ -71,8 +71,8 @@ if __name__ == '__main__':
     input=torch.randn(50,512,7,7)
     psa = PSA(channel=512,reduction=8)
     output=psa(input)
-    a=output.view(-1).sum()
-    a.backward()
+    # a=output.view(-1).sum()
+    # a.backward()
     print(output.shape)
 
     
