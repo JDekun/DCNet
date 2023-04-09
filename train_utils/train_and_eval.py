@@ -11,7 +11,7 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, epochs, 
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}/{}] Train'.format(epoch, epochs)
+    header = 'Train: [{}/{}]'.format(epoch, epochs)
 
     i = 1
     K = args.GAcc
@@ -76,7 +76,7 @@ def evaluate(model, data_loader, device, num_classes, epoch, epochs):
     model.eval()
     confmat = utils.ConfusionMatrix(num_classes)
     metric_logger = utils.MetricLogger(delimiter="  ")
-    header = 'Epoch: [{}/{}] Test'.format(epoch, epochs)
+    header = 'Test: [{}/{}]'.format(epoch, epochs)
     
     with torch.no_grad():
         for image, target in metric_logger.log_every(data_loader, 10, header, epoch, epochs):
