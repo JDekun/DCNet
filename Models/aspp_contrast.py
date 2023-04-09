@@ -287,6 +287,15 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
     backbone = resnet50(replace_stride_with_dilation=[False, True, True])
 
+    out_inplanes = 2048
+    aux_inplanes = 1024
+
+    return_layers = {'layer4': 'out'}
+    return_layers['layer1'] = 'contrast_en'
+    if aux:
+        return_layers['layer3'] = 'aux'
+    # 重构backbone
+    backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
 
     if pretrain_backbone:
         print("loading resnet50-backnone weight...")
@@ -296,18 +305,15 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
             print("missing_keys: ", missing_keys)
             print("unexpected_keys: ", unexpected_keys)
 
-    out_inplanes = 2048
-    aux_inplanes = 1024
-
-    return_layers = {'layer4': 'out'}
-    return_layers['layer1'] = 'contrast_en'
-    if aux:
-        return_layers['layer3'] = 'aux'
-    backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-
     contrast=None
+    attention=None
+    attention_name = args.attention
     if args.contrast != -1:
         contrast = contrast_head(256, args.project_dim)
+        if attention_name == "cbam":
+            attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+        elif attention_name == "selfattention":
+            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -318,23 +324,14 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     memory_size = args.memory_size
 
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size)
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
 
     return model
-
 
 def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth'
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
-
-    if pretrain_backbone:
-        # 载入resnet101 backbone预训练权重
-        print("loading resnet101-backnone weight...")
-        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet101-imagenet.pth", map_location='cpu'))
-        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
-            print("missing_keys: ", missing_keys)
-            print("unexpected_keys: ", unexpected_keys)
             
     out_inplanes = 2048
     aux_inplanes = 1024
@@ -343,7 +340,15 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     return_layers['layer1'] = 'contrast_en'
     if aux:
         return_layers['layer3'] = 'aux'
+    # 重构backbone
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
+    if pretrain_backbone:
+        # 载入resnet101 backbone预训练权重
+        print("loading resnet101-backnone weight...")
+        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet101-imagenet.pth", map_location='cpu'))
+        if len(missing_keys) != 0 or len(unexpected_keys) != 0:
+            print("missing_keys: ", missing_keys)
+            print("unexpected_keys: ", unexpected_keys)
 
     contrast=None
     attention=None
