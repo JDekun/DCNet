@@ -7,16 +7,16 @@ from collections import OrderedDict
 from train_utils.loss_manage import criterion
 
 
-def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_scheduler, print_freq=10, scaler=None):
+def train_one_epoch(args, model, optimizer, data_loader, device, epoch, epochs, lr_scheduler, print_freq=10, scaler=None):
     model.train()
     metric_logger = utils.MetricLogger(delimiter="  ")
     metric_logger.add_meter('lr', utils.SmoothedValue(window_size=1, fmt='{value:.6f}'))
-    header = 'Epoch: [{}] Train'.format(epoch)
+    header = 'Epoch: [{}/{}] Train'.format(epoch, epochs)
 
     i = 1
     K = args.GAcc
     optimizer.zero_grad()
-    for image, target in metric_logger.log_every(data_loader, print_freq, header):
+    for image, target in metric_logger.log_every(data_loader, print_freq, header, epoch, epochs):
         image, target = image.to(device), target.to(device)
         my_context = model.no_sync if args.rank != -1 and i % K != 0 else nullcontext
         with my_context():
@@ -72,14 +72,14 @@ def train_one_epoch(args, model, optimizer, data_loader, device, epoch, lr_sched
     return metric_logger.meters["loss"].global_avg, lr
 
 
-def evaluate(model, data_loader, device, num_classes, epoch):
+def evaluate(model, data_loader, device, num_classes, epoch, epochs):
     model.eval()
     confmat = utils.ConfusionMatrix(num_classes)
     metric_logger = utils.MetricLogger(delimiter="  ")
-    header = 'Epoch: [{}] Test'.format(epoch)
+    header = 'Epoch: [{}/{}] Test'.format(epoch, epochs)
     
     with torch.no_grad():
-        for image, target in metric_logger.log_every(data_loader, 10, header):
+        for image, target in metric_logger.log_every(data_loader, 10, header, epoch, epochs):
             image, target = image.to(device), target.to(device)
             
             output = model(image, is_eval=True)
