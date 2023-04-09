@@ -331,7 +331,7 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     if pretrain_backbone:
         # 载入resnet101 backbone预训练权重
         print("loading resnet101-backnone weight...")
-        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet101_imagenet.pth", map_location='cpu'))
+        missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet101-imagenet.pth", map_location='cpu'))
         if len(missing_keys) != 0 or len(unexpected_keys) != 0:
             print("missing_keys: ", missing_keys)
             print("unexpected_keys: ", unexpected_keys)
