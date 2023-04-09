@@ -238,11 +238,11 @@ if __name__ == "__main__":
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     # SGD的weight_decay参数
-    parser.add_argument('--wd', '--weight-decay', default=1e-4, type=float,
+    parser.add_argument('--wd', '--weight_decay', default=1e-4, type=float,
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 训练过程打印信息的频率
-    parser.add_argument('--print-freq', default=10, type=int, help='print frequency')
+    parser.add_argument('--print_freq', default=10, type=int, help='print frequency')
     # 文件保存地址
     parser.add_argument('--checkpoint_dir', default='./results', help='path where to save')
     # 基于上次的训练结果接着训练
@@ -256,9 +256,9 @@ if __name__ == "__main__":
     )
 
     # 分布式进程数
-    parser.add_argument('--world-size', default=1, type=int,
+    parser.add_argument('--world_size', default=1, type=int,
                         help='number of distributed processes')
-    parser.add_argument('--dist-url', default='env://', help='url used to set up distributed training')
+    parser.add_argument('--dist-_url', default='env://', help='url used to set up distributed training')
     # Mixed precision training parameters
     parser.add_argument("--amp", default=True, type=str2bool,
                         help="Use torch.cuda.amp for mixed precision training")
