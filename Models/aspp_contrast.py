@@ -122,7 +122,7 @@ class DeepLabV3(nn.Module):
         result["out"] = out
 
         # 对比simsiam模块
-        if  self.contrast is not None and is_eval == False:
+        if  (self.contrast is not None) and (is_eval == False):
             temp = self.contrast(x["aspp"])
             aspp_one = temp[0]
             aspp_two = temp[1]
