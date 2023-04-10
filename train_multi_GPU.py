@@ -100,9 +100,9 @@ def main(args):
         os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
         os.environ['WANDB_MODE'] = args.wandb_model
         if args.resume and args.run_id:
-            wandb.init(project="DCNet", resume="must", id=args.run_id)
+            wandb.init(project=args.wandb, resume="must", id=args.run_id)
         else:
-            wandb.init(project="DCNet")
+            wandb.init(project=args.wandb)
         wandb.config.update(args, allow_val_change=True)
         # wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
@@ -273,7 +273,7 @@ if __name__ == "__main__":
                         help="save file for result")
 
     # wandb设置
-    parser.add_argument('--wandb', default=False, type=str2bool, help='w/o wandb')
+    parser.add_argument('--wandb', default="", type=str, help='wandb name')
     parser.add_argument('--wandb_model', default='dryrun', type=str, help='run or dryrun')
     parser.add_argument('--run_id', default='', type=str, help='run name')
 
