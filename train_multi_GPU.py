@@ -98,8 +98,7 @@ def main(args):
         os.environ["WANDB_API_KEY"] = 'ae69f83abb637683132c012cd248d4a14177cd36'
         os.environ['WANDB_MODE'] = args.wandb_model
         if args.resume and args.run_name:
-            wandb.init(project="DCNet", name=args.run_name)
-        else:
+            wandb.init(project="DCNet", name=args.run_name, resume="must", id="3b4f7309080a")
             wandb.init(project="DCNet")
         wandb.config.update(args)
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
