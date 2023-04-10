@@ -104,7 +104,7 @@ def main(args):
         else:
             wandb.init(project="DCNet")
         wandb.config.update(args, allow_val_change=True)
-        wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
+        # wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
     print(model)
     best_IOU = 0
