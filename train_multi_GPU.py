@@ -101,7 +101,7 @@ def main(args):
             wandb.init(project="DCNet", resume="must", id=args.run_id)
         else:
             wandb.init(project="DCNet")
-        wandb.config.update(args)
+        wandb.config.update(args, allow_val_change=True)
         wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
     print(model)
