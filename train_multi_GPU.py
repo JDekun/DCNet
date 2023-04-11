@@ -78,8 +78,8 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         args.start_epoch = checkpoint['epoch'] + 1
-        # if 'run_id' in checkpoint.keys():
-        #     args.run_id = checkpoint['run_id']
+        if 'run_id' in checkpoint.keys():
+            args.run_id = checkpoint['run_id']
 
         if args.amp:
             scaler.load_state_dict(checkpoint["scaler"])
@@ -101,7 +101,8 @@ def main(args):
         if args.resume and args.run_id:
             wandb.init(project=args.wandb, resume="must", id=args.run_id)
         else:
-            wandb.init(project=args.wandb)
+            args.run_id = wandb.util.generate_id()
+            wandb.init(project=args.wandb, id=args.run_id)
         wandb.config.update(args, allow_val_change=True)
         # wandb.watch(model, log="all", log_freq=10) # 上传梯度信息
 
@@ -148,7 +149,7 @@ def main(args):
                          'lr_scheduler': lr_scheduler.state_dict(),
                          'args': args,
                          'epoch': epoch,
-                         'run_id':wandb.util.generate_id()}
+                         'run_id': args.run_id}
             if args.amp:
                 save_file["scaler"] = scaler.state_dict()
             save_on_master(save_file,
