@@ -296,7 +296,7 @@ class contrast_head(nn.Module):
             count += 1
         cou = 0
         for con in self.up:
-            temp = con(_res[count])
+            temp = con(_res[cou])
             _con.append(temp)
             cou += 1
         return _res, _con
