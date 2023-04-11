@@ -60,7 +60,6 @@ def main(args):
     # 设置参数的学习率
     optimizer = optim_manage(args, model_without_ddp)
     
-
     scaler = torch.cuda.amp.GradScaler() if args.amp else None
     
     # 梯度加速
@@ -79,8 +78,8 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         args.start_epoch = checkpoint['epoch'] + 1
-        if 'run_id' in checkpoint.keys():
-            args.run_id = checkpoint['run_id']
+        # if 'run_id' in checkpoint.keys():
+        #     args.run_id = checkpoint['run_id']
 
         if args.amp:
             scaler.load_state_dict(checkpoint["scaler"])
