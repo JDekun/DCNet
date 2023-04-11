@@ -254,10 +254,10 @@ class DeepLabHead(nn.Sequential):
 class ASPPContrast(nn.Sequential):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
         super(ASPPContrast, self).__init__(
-            nn.Conv2d(in_channels, in_channels, 3, padding=1, bias=False),
+            nn.Conv2d(in_channels, in_channels, 1, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True),
-            nn.Conv2d(in_channels, pre_dim, 3, padding=1, bias=False),
+            nn.Conv2d(in_channels, pre_dim, 1, padding=1, bias=False),
             nn.BatchNorm2d(pre_dim),
             nn.ReLU(inplace=True)
         ) 
