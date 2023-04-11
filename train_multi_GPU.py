@@ -78,8 +78,8 @@ def main(args):
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
         args.start_epoch = checkpoint['epoch'] + 1
-        if 'run_id' in checkpoint.keys():
-            args.run_id = checkpoint['run_id']
+        # if 'run_id' in checkpoint.keys():
+        #     args.run_id = checkpoint['run_id']
 
         if args.amp:
             scaler.load_state_dict(checkpoint["scaler"])
