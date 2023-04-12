@@ -91,7 +91,7 @@ class DeepLabV3(nn.Module):
         self.contrast = contrast
         self.attention = attention
 
-        self.attention_name = args.attention_name
+        self.attention_name = args.attention
         
         num_classes = 1
 
