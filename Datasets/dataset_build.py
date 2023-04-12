@@ -61,8 +61,8 @@ def datasets_load(args):
                                     transforms=get_transform(train=False),
                                     txt_name="val.txt")
     elif "cityscapes" in args.data_path:
-        # crop_size = (1024, 512)
-        crop_size = (769, 769)
+        crop_size = (1024, 512)
+        # crop_size = (769, 769)
         # crop_size = (513, 513)
         train_dataset = Cityscapes(
                             root=args.data_path,
@@ -77,8 +77,8 @@ def datasets_load(args):
                             downsample_rate=1,
                             scale_factor=16)
         
-        # test_size = (2048, 1024)
-        test_size = (769, 769)
+        test_size = (2048, 1024)
+        # test_size = (769, 769)
         # test_size = (513, 513)
         val_dataset = Cityscapes(
                             root=args.data_path,
