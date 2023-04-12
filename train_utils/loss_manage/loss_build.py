@@ -74,8 +74,8 @@ def criterion(args, inputs, target, epoch):
     if len(losses) == 1:
         return losses['out']
     
-    if len(losses) == 2:
-        return losses['out'] + losses['simsiam_loss']
+    # if len(losses) == 2:
+    #     return losses['out'] + losses['simsiam_loss']
     
     loss = losses['out']
 
