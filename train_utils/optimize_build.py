@@ -12,8 +12,8 @@ def optim_manage(args, model_without_ddp):
         params_to_optimize.append({"params": params, "lr": args.lr * 10}) 
     if args.contrast != -1:
         if args.loss_name in ['simsiam', 'aspp_loss']:
-            params_simsiam = [p for p in model_without_ddp.contrast.parameters() if p.requires_grad]
-            params_to_optimize.append({"params": params_simsiam, "lr": args.lr * 10})
+            # params_simsiam = [p for p in model_without_ddp.contrast.parameters() if p.requires_grad]
+            # params_to_optimize.append({"params": params_simsiam, "lr": args.lr * 10})
             if args.attention:
                 attention = [p for p in model_without_ddp.attention.parameters() if p.requires_grad]
                 params_to_optimize.append({"params": attention, "lr": args.lr * 10})

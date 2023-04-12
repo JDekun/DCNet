@@ -83,33 +83,30 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, args, backbone, classifier, aux_classifier=None, contrast=None, attention=None):
+    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, attention=None, attention_name=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
         self.attention = attention
-
-        self.attention_name = args.attention
-        
+        self.attention_name = attention_name
+        self.r = memory_size
         num_classes = 1
+        dim = 128
 
-        if args.contrast != -1 and args.memory_size > 0:
-            if args.L3_loss != 0:
-                self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
-                self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                self.register_buffer("code3_queue_label", torch.randn(num_classes, args.memory_size))
-            
-            if args.L2_loss != 0:
-                self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
-                self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                self.register_buffer("code2_queue_label", torch.randn(num_classes, args.memory_size))
-            
-            if args.L1_loss != 0:
-                self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
-                self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-                self.register_buffer("code1_queue_label", torch.randn(num_classes, args.memory_size)) 
+        if self.contrast != -1 and self.r > 0:        
+            self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code3_queue_label", torch.randn(num_classes, self.r))
+
+            self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code2_queue_label", torch.randn(num_classes, self.r))
+                
+            self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
+            self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+            self.register_buffer("code1_queue_label", torch.randn(num_classes, self.r)) 
 
     def forward(self, x: Tensor, target=None, is_eval = False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -125,20 +122,20 @@ class DeepLabV3(nn.Module):
         result["out"] = out
 
         # 对比simsiam模块
-        if  (self.contrast is not None) and (is_eval == False):
-            temp = self.contrast(x["aspp"])
-            aspp_one = temp[0]
-            aspp_two = temp[1]
-            aspp_three = temp[2]
+        if  (self.contrast ) and (is_eval == False):
+            temp = x["aspp"]
+            aspp_one = F.normalize(temp[0], dim=1)
+            aspp_two = F.normalize(temp[1], dim=1)
+            aspp_three = F.normalize(temp[2], dim=1)
 
             if self.attention_name == "cbam":
                 aspp_one = self.attention(aspp_one)
                 aspp_two = self.attention(aspp_two)
                 aspp_three = self.attention(aspp_three)
-            elif "selfattention" in self.attention_name:
+            elif self.attention_name == "selfattention":
                 aspp_one = self.attention(aspp_three, aspp_two, aspp_one)
 
-            if "selfattention" in self.attention_name:
+            if self.attention == "selfattention":
                 result["L1"] = [aspp_one, aspp_one]
             else:
                 result["L1"] = [aspp_one, aspp_two]
@@ -215,6 +212,7 @@ class ASPP(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
+        self.mlp = contrast_head(256, 128)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
@@ -222,12 +220,17 @@ class ASPP(nn.Module):
         count = 0
         for conv in self.convs:
             temp = conv(x)
-            _res.append(temp)
             if count >0 and count < 4:
                 _aspp.append(temp)
+            else:
+                _res.append(temp)
             count += 1
+
+        down, up = self.mlp(_aspp)
+        for i in up:
+            _res.append(i)
         res = torch.cat(_res, dim=1)
-        return self.project(res), _aspp
+        return self.project(res), down
 
 
 class DeepLabHead(nn.Sequential):
@@ -254,14 +257,19 @@ class DeepLabHead(nn.Sequential):
         return out
 
 
-class ASPPContrast(nn.Sequential):
+class ASPPDown(nn.Sequential):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
-        super(ASPPContrast, self).__init__(
-            nn.Conv2d(in_channels, in_channels, 1, padding=1, bias=False),
-            nn.BatchNorm2d(in_channels),
-            nn.ReLU(inplace=True),
+        super(ASPPDown, self).__init__(
             nn.Conv2d(in_channels, pre_dim, 1, padding=1, bias=False),
             nn.BatchNorm2d(pre_dim),
+            nn.ReLU(inplace=True)
+        )
+
+class ASPPUp(nn.Sequential):
+    def __init__(self, in_channels: int, pre_dim: int) -> None:
+        super(ASPPUp, self).__init__(
+            nn.Conv2d(pre_dim, in_channels, 1, padding=1, bias=False),
+            nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True)
         ) 
 
@@ -269,23 +277,32 @@ class contrast_head(nn.Module):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
         super(contrast_head, self).__init__()
 
-        modules = []
+        down = []
+        up = []
         for i in range(3):
-            modules.append(ASPPContrast(in_channels, pre_dim))
+            down.append(ASPPDown(in_channels, pre_dim))
+            up.append(ASPPUp(in_channels, pre_dim))
 
-        self.convs = nn.ModuleList(modules)
+        self.down = nn.ModuleList(down)
+        self.up = nn.ModuleList(up)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
+        _con = []
         count = 0
-        for conv in self.convs:
-            temp = F.normalize(conv(x[count]), dim=1)
+        for conv in self.down:
+            temp = conv(x[count])
             _res.append(temp)
             count += 1
-        return _res
+        cou = 0
+        for con in self.up:
+            temp = con(_res[cou])
+            _con.append(temp)
+            cou += 1
+        return _res, _con
     
     
-def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
+def mep_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet50_imagenet': 'https://download.pytorch.org/models/resnet50-0676ba61.pth'
     # 'deeplabv3_resnet50_coco': 'https://download.pytorch.org/models/deeplabv3_resnet50_coco-cd0a2569.pth'
     backbone = resnet50(replace_stride_with_dilation=[False, True, True])
@@ -315,9 +332,8 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
         contrast = contrast_head(256, args.project_dim)
         if attention_name == "cbam":
             attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
-        elif "selfattention" in attention_name:
-            head = int(attention_name.split("_")[1])
-            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
+        elif attention_name == "selfattention":
+            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -326,11 +342,13 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(args, backbone, classifier, aux_classifier, contrast, attention)
+    memory_size = args.memory_size
+
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
 
     return model
 
-def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
+def mep_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
     # 'resnet101_imagenet': 'https://download.pytorch.org/models/resnet101-63fe2227.pth'
     # 'deeplabv3_resnet101_coco': 'https://download.pytorch.org/models/deeplabv3_resnet101_coco-586e9e4e.pth'
     backbone = resnet101(replace_stride_with_dilation=[False, True, True])
@@ -352,16 +370,16 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
             print("missing_keys: ", missing_keys)
             print("unexpected_keys: ", unexpected_keys)
 
-    contrast=None
+    if args.contrast != -1:
+        contrast=True
     attention=None
     attention_name = args.attention
-    if args.contrast != -1:
-        contrast = contrast_head(256, args.project_dim)
-        if attention_name == "cbam":
-            attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
-        elif "selfattention" in attention_name:
-            head = int(attention_name.split("_")[1])
-            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
+    # if args.contrast != -1:
+    #     contrast = contrast_head(256, args.project_dim)
+    #     if attention_name == "cbam":
+    #         attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+    #     elif attention_name == "selfattention":
+    #         attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
@@ -370,6 +388,8 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    model = DeepLabV3(args, backbone, classifier, aux_classifier, contrast, attention)
+    memory_size = args.memory_size
+
+    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
 
     return model

@@ -90,7 +90,7 @@ class FCN(nn.Module):
         # self.m = 0.999
         self.r = args.memory_size
         num_classes = 1
-        dim = args.proj_dim
+        dim = args.project_dim
 
         if self.contrast != -1:
             if self.L3_loss != 0:
