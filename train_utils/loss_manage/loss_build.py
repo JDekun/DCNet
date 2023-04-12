@@ -25,6 +25,8 @@ def criterion(args, inputs, target, epoch):
             if name == "out":
                 pred_y = x
                 losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+            elif name == "aux":
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
             elif name == "simsiam_loss":
                 contrast_en = x["contrast_en"]
                 contrast_de = x["contrast_de"]
@@ -74,8 +76,8 @@ def criterion(args, inputs, target, epoch):
     if len(losses) == 1:
         return losses['out']
     
-    if len(losses) == 2:
-        return losses['out'] + losses['simsiam_loss']
+    # if len(losses) == 2:
+    #     return losses['out'] + losses['simsiam_loss']
     
     loss = losses['out']
 
