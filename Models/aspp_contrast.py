@@ -357,8 +357,9 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
         contrast = contrast_head(256, args.project_dim)
         if attention_name == "cbam":
             attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
-        elif attention_name == "selfattention":
-            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
+        elif "selfattention" in attention_name:
+            head = int(attention_name.split("_")[1])
+            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
