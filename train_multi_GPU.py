@@ -288,7 +288,6 @@ if __name__ == "__main__":
     parser.add_argument("--L1_loss", default=0, type=float, help="L1 loss")
     parser.add_argument("--GAcc", default=1, type=int, help="Gradient Accumulation")
     parser.add_argument("--memory_size", default=0, type=int, help="")
-    parser.add_argument("--proj_dim", default=128, type=int, help="")
     parser.add_argument("--network_stride", default=8, type=int, help="")
     parser.add_argument("--pixel_update_freq", default=10, type=int, help="")
     parser.add_argument('--ddp', default=False, type=str2bool, help='')

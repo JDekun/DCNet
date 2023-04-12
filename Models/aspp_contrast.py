@@ -83,30 +83,33 @@ class DeepLabV3(nn.Module):
     """
     __constants__ = ['aux_classifier']
 
-    def __init__(self, backbone, classifier, aux_classifier=None, contrast=None, memory_size=0, attention=None, attention_name=None):
+    def __init__(self, args, backbone, classifier, aux_classifier=None, contrast=None, attention=None):
         super(DeepLabV3, self).__init__()
         self.backbone = backbone
         self.classifier = classifier
         self.aux_classifier = aux_classifier
         self.contrast = contrast
         self.attention = attention
-        self.attention_name = attention_name
-        self.r = memory_size
+
+        self.attention_name = args.attention_name
+        
         num_classes = 1
-        dim = 128
 
-        if self.contrast != -1 and self.r > 0:        
-            self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-            self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-            self.register_buffer("code3_queue_label", torch.randn(num_classes, self.r))
-
-            self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-            self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-            self.register_buffer("code2_queue_label", torch.randn(num_classes, self.r))
-                
-            self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, self.r, dim), p=2, dim=2))
-            self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
-            self.register_buffer("code1_queue_label", torch.randn(num_classes, self.r)) 
+        if args.contrast != -1 and args.memory_size > 0:
+            if self.L3_loss != 0:
+                self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
+                self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                self.register_buffer("code3_queue_label", torch.randn(num_classes, args.memory_size))
+            
+            if self.L2_loss != 0:
+                self.register_buffer("encode2_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
+                self.register_buffer("encode2_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                self.register_buffer("code2_queue_label", torch.randn(num_classes, args.memory_size))
+            
+            if self.L1_loss != 0:
+                self.register_buffer("encode1_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
+                self.register_buffer("encode1_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
+                self.register_buffer("code1_queue_label", torch.randn(num_classes, args.memory_size)) 
 
     def forward(self, x: Tensor, target=None, is_eval = False) -> Dict[str, Tensor]:
         input_shape = x.shape[-2:]
@@ -323,9 +326,7 @@ def aspp_contrast_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    memory_size = args.memory_size
-
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
+    model = DeepLabV3(args, backbone, classifier, aux_classifier, contrast, attention)
 
     return model
 
@@ -369,8 +370,6 @@ def aspp_contrast_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes)
 
-    memory_size = args.memory_size
-
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
+    model = DeepLabV3(args, backbone, classifier, aux_classifier, contrast, attention)
 
     return model
