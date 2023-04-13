@@ -234,6 +234,7 @@ class ASPP(nn.Module):
             down, up = self.mep(_aspp)
             for i in up:
                 _res.append(i)
+                print(i.shape)
             res = torch.cat(_res, dim=1)
             return self.project(res), down
         else:
