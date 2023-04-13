@@ -92,9 +92,9 @@ class DeepLabV3(nn.Module):
         self.attention_name = args.attention
         
         num_classes = 1
+        self.contrast = True if args.contrast != -1 else False
 
         if args.contrast != -1 and args.memory_size > 0:
-            self.contrast =True
             if args.L3_loss != 0:
                 self.register_buffer("encode3_queue", nn.functional.normalize(torch.randn(num_classes, args.memory_size, args.project_dim), p=2, dim=2))
                 self.register_buffer("encode3_queue_ptr", torch.zeros(num_classes, dtype=torch.long))
