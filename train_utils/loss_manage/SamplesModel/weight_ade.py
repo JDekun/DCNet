@@ -11,8 +11,6 @@ def weight_ade(this_y_hat, this_y, cls_id, ade):
     n = ade
     easy_rate = (num_easy/sum) # ↑
     hard_rate = (num_hard/sum) # ↓
-    print('easy_rate',easy_rate)
-    print('hard_rate',hard_rate)
 
     hard = (hard_rate + 1)**(-n)  # y= (x+1)^-8
     easy = (easy_rate + 1)**(-n)  # y= (x+1)^-8
