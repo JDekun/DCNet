@@ -269,7 +269,7 @@ class DeepLabHead(nn.Sequential):
 class ASPPDown(nn.Sequential):
     def __init__(self, in_channels: int, pre_dim: int) -> None:
         super(ASPPDown, self).__init__(
-            nn.Conv2d(in_channels, pre_dim, 1, padding=1, bias=False),
+            nn.Conv2d(in_channels, pre_dim, 1, bias=False),
             nn.BatchNorm2d(pre_dim),
             nn.ReLU(inplace=True)
         )
@@ -277,7 +277,7 @@ class ASPPDown(nn.Sequential):
 class ASPPUp(nn.Sequential):
     def __init__(self, pre_dim: int, in_channels: int) -> None:
         super(ASPPUp, self).__init__(
-            nn.Conv2d(pre_dim, in_channels, 1, padding=1, bias=False),
+            nn.Conv2d(pre_dim, in_channels, 1, bias=False),
             nn.BatchNorm2d(in_channels),
             nn.ReLU(inplace=True)
         ) 
