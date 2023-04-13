@@ -226,7 +226,7 @@ class ASPP(nn.Module):
                 _aspp.append(temp)
             else:
                 _res.append(temp)
-                print(_res.shape)
+                print(temp.shape)
             count += 1
             _sum.append(temp)
         
