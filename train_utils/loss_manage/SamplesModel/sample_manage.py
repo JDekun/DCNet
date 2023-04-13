@@ -15,7 +15,7 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
         total_classes += len(this_classes)
 
     if total_classes == 0:
-        return None, None
+        return None, None, None, None, None, None
 
     X_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
     Y_ = torch.zeros((total_classes, 1, feat_dim), dtype=torch.float).cuda()
