@@ -136,7 +136,7 @@ class DeepLabV3(nn.Module):
                 aspp_two = F.normalize(self.attention(aspp_two), dim=1)
                 aspp_three = F.normalize(self.attention(aspp_three), dim=1)
             elif "selfattention" in self.attention_name:
-                aspp_one = F.normalize(self.attention(aspp_one), dim=1)
+                aspp_one = F.normalize(self.attention(aspp_one, aspp_two, aspp_three), dim=1)
 
             if "selfattention" in self.attention_name:
                 result["L1"] = [aspp_one, aspp_one]

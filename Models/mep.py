@@ -213,7 +213,8 @@ class ASPP(nn.Module):
         )
         if contrast != -1:
             self.contrast = contrast
-            self.mep = contrast_head(256, 128)
+            self.mep = contrast_head(256, 128, attention)
+        
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
@@ -281,7 +282,7 @@ class ASPPUp(nn.Sequential):
         ) 
 
 class contrast_head(nn.Module):
-    def __init__(self, in_channels: int, pre_dim: int) -> None:
+    def __init__(self, in_channels: int, pre_dim: int, attention) -> None:
         super(contrast_head, self).__init__()
 
         down = []
@@ -293,12 +294,24 @@ class contrast_head(nn.Module):
         self.down = nn.ModuleList(down)
         self.up = nn.ModuleList(up)
 
+        if attention == "cbam":
+            self.attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+        elif "selfattention" in attention:
+            head = int(attention.split("_")[1])
+            self.attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
+
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
         _con = []
         count = 0
         for conv in self.down:
             temp = conv(x[count])
+
+            if self.attention_name == "cbam":
+                temp = self.attention(temp)
+            elif "selfattention" in self.attention_name:
+                temp = self.attention(temp, temp, temp)
+            
             _res.append(temp)
             count += 1
         cou = 0
