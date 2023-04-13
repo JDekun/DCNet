@@ -384,6 +384,6 @@ def mep_resnet101(args, aux, num_classes=21, pretrain_backbone=False):
 
     classifier = DeepLabHead(out_inplanes, num_classes, args.contrast, args.attention)
 
-    model = DeepLabV3(backbone, classifier, aux_classifier)
+    model = DeepLabV3(args, backbone, classifier, aux_classifier)
 
     return model
