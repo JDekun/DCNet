@@ -27,20 +27,29 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
         this_y = predict[ii]
         this_classes = classes[ii]
 
-        for cls_id in this_classes:    
-
-            if "adapt_excite" in type:
-                indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
-            elif "self_pace" in type:
-                indices = eval("SamplesModel." + type)(epoch, epochs, this_y_hat, this_y, cls_id)
-            else:
-                indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
-
-            temp = indices.shape[0]
-            if temp != 0:
-                X_[X_ptr, 0, :] = torch.mean(X[ii, indices, :].squeeze(1), dim=0)
-                Y_[X_ptr, 0, :] = torch.mean(Y[ii, indices, :].squeeze(1), dim=0)
+        for cls_id in this_classes:
+            if "weight_ade" in type:
+                w = int(type.split('_')[-1])
+                hard_indices, easy_indices , hard_weight, easy_weight = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id, w)
+                ade_x = torch.mean(X[ii, hard_indices, :].squeeze(1), dim=0)*hard_weight  + torch.mean(X[ii, easy_indices, :].squeeze(1), dim=0)*easy_weight
+                ade_y = torch.mean(Y[ii, hard_indices, :].squeeze(1), dim=0)*hard_weight  + torch.mean(Y[ii, easy_indices, :].squeeze(1), dim=0)*easy_weight
+                X_[X_ptr, 0, :] = ade_x
+                Y_[X_ptr, 0, :] = ade_y
                 y_[X_ptr] = cls_id
+            else:  
+                if "adapt_excite" in type:
+                    n = int(type.split('_')[-1])
+                    indices = eval("SamplesModel." + "adapt_excite")(this_y_hat, this_y, cls_id, n)
+                elif "self_pace" in type:
+                    indices = eval("SamplesModel." + type)(epoch, epochs, this_y_hat, this_y, cls_id)
+                else:
+                    indices = eval("SamplesModel." + type)(this_y_hat, this_y, cls_id)
+
+                temp = indices.shape[0]
+                if temp != 0:
+                    X_[X_ptr, 0, :] = torch.mean(X[ii, indices, :].squeeze(1), dim=0)
+                    Y_[X_ptr, 0, :] = torch.mean(Y[ii, indices, :].squeeze(1), dim=0)
+                    y_[X_ptr] = cls_id
                 X_ptr += 1
 
     return X_, Y_, y_, X_.detach(), Y_.detach(), y_.detach()
