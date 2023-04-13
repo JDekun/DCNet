@@ -232,6 +232,7 @@ class ASPP(nn.Module):
         if self.contrast != -1:
             down, up = self.mep(_aspp)
             for i in up:
+                print(i.shape)
                 _res.append(i)
             res = torch.cat(_res, dim=1)
             return self.project(res), down
@@ -305,7 +306,6 @@ class contrast_head(nn.Module):
         for con in self.up:
             temp = con(_res[cou])
             _con.append(temp)
-            print(temp.shape)
             cou += 1
         return _res, _con
     
