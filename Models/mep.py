@@ -226,7 +226,6 @@ class ASPP(nn.Module):
                 _aspp.append(temp)
             else:
                 _res.append(temp)
-                print(temp.shape)
             count += 1
             _sum.append(temp)
         
@@ -234,7 +233,6 @@ class ASPP(nn.Module):
             down, up = self.mep(_aspp)
             for i in up:
                 _res.append(i)
-                print(i.shape)
             res = torch.cat(_res, dim=1)
             return self.project(res), down
         else:
