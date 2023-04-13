@@ -301,6 +301,7 @@ class contrast_head(nn.Module):
             temp = conv(x[count])
             _res.append(temp)
             count += 1
+        print(_res.shape)
         cou = 0
         for con in self.up:
             temp = con(_res[cou])
