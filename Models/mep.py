@@ -273,7 +273,7 @@ class ASPPDown(nn.Sequential):
         )
 
 class ASPPUp(nn.Sequential):
-    def __init__(self, in_channels: int, pre_dim: int) -> None:
+    def __init__(self, pre_dim: int, in_channels: int) -> None:
         super(ASPPUp, self).__init__(
             nn.Conv2d(pre_dim, in_channels, 1, padding=1, bias=False),
             nn.BatchNorm2d(in_channels),
@@ -301,7 +301,6 @@ class contrast_head(nn.Module):
             temp = conv(x[count])
             _res.append(temp)
             count += 1
-        print(_res.shape)
         cou = 0
         for con in self.up:
             temp = con(_res[cou])
