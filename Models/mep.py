@@ -189,7 +189,7 @@ class ASPPPooling(nn.Sequential):
 
 
 class ASPP(nn.Module):
-    def __init__(self, in_channels: int, atrous_rates: List[int], out_channels: int = 256) -> None:
+    def __init__(self, in_channels: int, atrous_rates: List[int], contrast, attention, out_channels: int = 256) -> None:
         super(ASPP, self).__init__()
         modules = [
             nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
@@ -211,11 +211,14 @@ class ASPP(nn.Module):
             nn.ReLU(inplace=True),
             nn.Dropout(0.5)
         )
-        self.mlp = contrast_head(256, 128)
+        if contrast != -1:
+            self.contrast = contrast
+            self.mep = contrast_head(256, 128)
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
         _aspp = []
+        _sum = []
         count = 0
         for conv in self.convs:
             temp = conv(x)
@@ -224,18 +227,23 @@ class ASPP(nn.Module):
             else:
                 _res.append(temp)
             count += 1
-
-        down, up = self.mlp(_aspp)
-        for i in up:
-            _res.append(i)
-        res = torch.cat(_res, dim=1)
-        return self.project(res), down
+            _sum.append(temp)
+        
+        if self.contrast != -1:
+            down, up = self.mep(_aspp)
+            for i in up:
+                _res.append(i)
+            res = torch.cat(_res, dim=1)
+            return self.project(res), down
+        else:
+            sum = torch.cat(_sum, dim=1)
+            return self.project(sum)
 
 
 class DeepLabHead(nn.Sequential):
-    def __init__(self, in_channels: int, num_classes: int) -> None:
+    def __init__(self, in_channels: int, num_classes: int, contrast, attention) -> None:
         super(DeepLabHead, self).__init__(
-            ASPP(in_channels, [12, 24, 36]),
+            ASPP(in_channels, [12, 24, 36], contrast, attention),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
@@ -247,12 +255,12 @@ class DeepLabHead(nn.Sequential):
         count = 0
         for modul in self:
             if count == 0:
-                x, aspp = modul(x)
+                x, mep = modul(x)
             else:
                 x = modul(x)
             count =count + 1
         out['out'] = x
-        out['aspp'] = aspp
+        out['aspp'] = mep
         return out
 
 
@@ -280,7 +288,7 @@ class contrast_head(nn.Module):
         up = []
         for i in range(3):
             down.append(ASPPDown(in_channels, pre_dim))
-            up.append(ASPPUp(in_channels, pre_dim))
+            up.append(ASPPUp(pre_dim, in_channels))
 
         self.down = nn.ModuleList(down)
         self.up = nn.ModuleList(up)
