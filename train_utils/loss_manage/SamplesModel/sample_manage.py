@@ -31,8 +31,10 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
             if "weight_ade" in type:
                 w = int(type.split('_')[-1])
                 hard_indices, easy_indices , hard_weight, easy_weight = eval("SamplesModel." + "weight_ade")(this_y_hat, this_y, cls_id, w)
-                ade_x = torch.mean(X[ii, hard_indices, :].squeeze(1), dim=0)*hard_weight  + torch.mean(X[ii, easy_indices, :].squeeze(1), dim=0)*easy_weight
-                ade_y = torch.mean(Y[ii, hard_indices, :].squeeze(1), dim=0)*hard_weight  + torch.mean(Y[ii, easy_indices, :].squeeze(1), dim=0)*easy_weight
+                ade_x = torch.mean(X[ii, hard_indices, :].squeeze(1), dim=0)
+                ade_y = torch.mean(Y[ii, hard_indices, :].squeeze(1), dim=0)
+                print(hard_weight)
+                print(easy_weight)
                 X_[X_ptr, 0, :] = ade_x
                 Y_[X_ptr, 0, :] = ade_y
                 y_[X_ptr] = cls_id
