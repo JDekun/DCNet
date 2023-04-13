@@ -226,13 +226,13 @@ class ASPP(nn.Module):
                 _aspp.append(temp)
             else:
                 _res.append(temp)
+                print(_res.shape)
             count += 1
             _sum.append(temp)
         
         if self.contrast != -1:
             down, up = self.mep(_aspp)
             for i in up:
-                print(i.shape)
                 _res.append(i)
             res = torch.cat(_res, dim=1)
             return self.project(res), down
