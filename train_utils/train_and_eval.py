@@ -79,7 +79,7 @@ def evaluate(model, data_loader, device, num_classes, epoch, epochs):
     header = 'Test: [{}/{}]'.format(epoch, epochs)
     
     with torch.no_grad():
-        for image, target in metric_logger.log_every(data_loader, 10, header, epoch, epochs):
+        for image, target in metric_logger.log_every(data_loader, 30, header, epoch, epochs):
             image, target = image.to(device), target.to(device)
             
             output = model(image, is_eval=True)
