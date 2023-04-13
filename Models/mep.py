@@ -127,19 +127,13 @@ class DeepLabV3(nn.Module):
         if  (self.contrast ) and (is_eval == False):
             temp = x["aspp"]
 
-            if self.attention_name == "cbam":
-                aspp_one = F.normalize(temp[0], dim=1)
-                aspp_two = F.normalize(temp[1], dim=1)
-                aspp_three = F.normalize(temp[2], dim=1)
-            elif "selfattention" in self.attention_name:
-                aspp_one = F.normalize(temp[0], dim=1)
+            aspp_one = F.normalize(temp[0], dim=1)
+            aspp_two = F.normalize(temp[1], dim=1)
+            aspp_three = F.normalize(temp[2], dim=1)
 
-            if "selfattention" in self.attention_name:
-                result["L1"] = [aspp_one, aspp_one]
-            else:
-                result["L1"] = [aspp_one, aspp_two]
-                result["L2"] = [aspp_two, aspp_three]
-                result["L3"] = [aspp_three, aspp_one]
+            result["L1"] = [aspp_one, aspp_two]
+            result["L2"] = [aspp_two, aspp_three]
+            result["L3"] = [aspp_three, aspp_one]
 
         if self.aux_classifier is not None:
             x = features["aux"]
