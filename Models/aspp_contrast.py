@@ -132,15 +132,15 @@ class DeepLabV3(nn.Module):
             aspp_three = temp[2]
 
             if self.attention_name == "cbam":
-                aspp_one = self.attention(aspp_one)
-                aspp_two = self.attention(aspp_two)
-                aspp_three = self.attention(aspp_three)
+                aspp_one = F.normalize(self.attention(aspp_one), dim=1)
+                aspp_two = F.normalize(self.attention(aspp_two), dim=1)
+                aspp_three = F.normalize(self.attention(aspp_three), dim=1)
             elif "selfattention" in self.attention_name:
-                aspp_one = self.attention(aspp_three, aspp_two, aspp_one)
+                aspp_one = F.normalize(self.attention(aspp_one, aspp_two, aspp_three), dim=1)
 
             if "selfattention" in self.attention_name:
                 result["L1"] = [aspp_one, aspp_one]
-            else:
+            else: 
                 result["L1"] = [aspp_one, aspp_two]
                 result["L2"] = [aspp_two, aspp_three]
                 result["L3"] = [aspp_three, aspp_one]
@@ -279,7 +279,7 @@ class contrast_head(nn.Module):
         _res = []
         count = 0
         for conv in self.convs:
-            temp = F.normalize(conv(x[count]), dim=1)
+            temp = conv(x[count])
             _res.append(temp)
             count += 1
         return _res
