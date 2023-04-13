@@ -299,6 +299,7 @@ class contrast_head(nn.Module):
         elif "selfattention" in attention:
             head = int(attention.split("_")[1])
             self.attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
+        self.attention_name = attention
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
