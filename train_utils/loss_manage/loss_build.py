@@ -17,8 +17,10 @@ def criterion(args, inputs, target, epoch):
     if args.contrast == -1:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
-            losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
-        return losses['out']
+            if name == "aux":
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) * 0.5
+            else:
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
     else:
         for name, x in inputs.items():
             # 忽略target中值为255的像素，255的像素是目标边缘或者padding填充
@@ -26,7 +28,7 @@ def criterion(args, inputs, target, epoch):
                 pred_y = x
                 losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
             elif name == "aux":
-                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255)
+                losses[name] = nn.functional.cross_entropy(x, target, ignore_index=255) * 0.5
             elif name == "simsiam_loss":
                 contrast_en = x["contrast_en"]
                 contrast_de = x["contrast_de"]
