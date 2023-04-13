@@ -22,14 +22,18 @@ from train_utils.distributed_utils import is_main_process
 
 
 def main(args):
+    # segmentation nun_classes(background)
+    if args.data_path == "cityscapes":
+        args.num_classes = 19
+    elif args.data_path == "pascal-voc-2012":
+        args.num_classes = 21
+    num_classes = args.num_classes
+
     # 分布式训练初始化
     init_distributed_mode(args)
     print(args.name_date)
     print(args)
     device = torch.device(args.device)
-
-    # segmentation nun_classes(background)
-    num_classes = args.num_classes
 
     # 用来保存运行结果的文件，只在主进程上进行写操作
     results_log = args.checkpoint_dir + "/output.log"
@@ -236,17 +240,17 @@ if __name__ == "__main__":
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     # 训练学习率，这里默认设置成0.0001，如果效果不好可以尝试加大学习率
-    parser.add_argument('--lr', default=0.0001, type=float,
+    parser.add_argument('--lr', default=0.01, type=float,
                         help='initial learning rate')
     # SGD的momentum参数
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                         help='momentum')
     # SGD的weight_decay参数
-    parser.add_argument('--wd', '--weight_decay', default=1e-4, type=float,
+    parser.add_argument('--wd', '--weight_decay', default=5e-4, type=float,
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 训练过程打印信息的频率
-    parser.add_argument('--print_freq', default=10, type=int, help='print frequency')
+    parser.add_argument('--print_freq', default=50, type=int, help='print frequency')
     # 文件保存地址
     parser.add_argument('--checkpoint_dir', default='./results', help='path where to save')
     # 基于上次的训练结果接着训练
