@@ -63,9 +63,9 @@ class ScaledDotProductAttention(nn.Module):
         b_s, nq = queries.shape[:2]
         nk = keys.shape[1]
 
-        q = self.fc_q(queries).view(b_s, nq, self.h, self.d_k).permute(0, 2, 1, 3)  # (b_s, h, nq, d_k)
-        k = self.fc_k(keys).view(b_s, nk, self.h, self.d_k).permute(0, 2, 3, 1)  # (b_s, h, d_k, nk)
-        v = self.fc_v(values).view(b_s, nk, self.h, self.d_v).permute(0, 2, 1, 3)  # (b_s, h, nk, d_v)
+        q = self.fc_q(queries).view(b_s, nq, self.h, self.d_k).permute(0, 2, 1, 3).contiguous()  # (b_s, h, nq, d_k)
+        k = self.fc_k(keys).view(b_s, nk, self.h, self.d_k).permute(0, 2, 3, 1).contiguous()  # (b_s, h, d_k, nk)
+        v = self.fc_v(values).view(b_s, nk, self.h, self.d_v).permute(0, 2, 1, 3).contiguous()  # (b_s, h, nk, d_v)
 
         att = torch.matmul(q, k) / np.sqrt(self.d_k)  # (b_s, h, nq, nk)
         if attention_weights is not None:
@@ -77,7 +77,7 @@ class ScaledDotProductAttention(nn.Module):
 
         out = torch.matmul(att, v).permute(0, 2, 1, 3).contiguous().view(b_s, nq, self.h * self.d_v)  # (b_s, nq, h*d_v)
         out = self.fc_o(out)  # (b_s, nq, d_model)
-        out = out.contiguous().view(b_s, h, w, c).permute(0, 3, 1, 2)
+        out = out.view(b_s, h, w, c).permute(0, 3, 1, 2).contiguous()
         return out
 
 
