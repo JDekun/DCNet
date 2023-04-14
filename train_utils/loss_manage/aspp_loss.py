@@ -275,30 +275,14 @@ def ASPP_CONTRAST_Loss(args, epoch, epochs, x, labels=None, predict=None):
     feats_, feats_y_, labels_, feats_que_, feats_y_que_, labels_queue_ = Sampling(type, epoch, epochs, feats, feats_y, labels, predict)
     # feats_, feats_y_, labels_ = Random_sampling(feats, feats_y, labels, predict)
 
-    loss = Contrastive(feats_, feats_y_, labels_, queue, queue_label)
-
-    # 并行更新队列
-    # if args.memory_size:
-    #     # dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
-    #     #                     encode_queue=queue_origin['encode_queue'],
-    #     #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
-    #     #                     decode_queue=queue_origin['decode_queue'],
-    #     #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-    #     dequeue_and_enqueue_self(args, feats_que_, feats_y_que_, labels_queue_,
-    #                                 encode_queue=queue_origin['encode_queue'],
-    #                                 encode_queue_ptr=queue_origin['encode_queue_ptr'],
-    #                                 decode_queue=queue_origin['decode_queue'],
-    #                                 decode_queue_ptr=queue_origin['decode_queue_ptr'])
-
-    if args.memory_size:
-        # dequeue_and_enqueue(args, feats_que, feats_y_que, labels_que,
-        #                     encode_queue=queue_origin['encode_queue'],
-        #                     encode_queue_ptr=queue_origin['encode_queue_ptr'],
-        #                     decode_queue=queue_origin['decode_queue'],
-        #                     decode_queue_ptr=queue_origin['decode_queue_ptr'])
-        dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
-                                        encode_queue=queue_origin['encode_queue'],
-                                        encode_queue_ptr=queue_origin['encode_queue_ptr'],
-                                        code_queue_label=queue_origin['code_queue_label'])
+    if feats_ != None:
+        loss = Contrastive(feats_, feats_y_, labels_, queue, queue_label)
+        if args.memory_size:
+            dequeue_and_enqueue_self_seri(args, feats_que_, feats_y_que_, labels_queue_,
+                                            encode_queue=queue_origin['encode_queue'],
+                                            encode_queue_ptr=queue_origin['encode_queue_ptr'],
+                                            code_queue_label=queue_origin['code_queue_label'])
+    else:
+        loss = 0
 
     return loss
