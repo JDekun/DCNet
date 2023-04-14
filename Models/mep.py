@@ -331,35 +331,21 @@ def mep_resnet50(args, aux, num_classes=21, pretrain_backbone=False):
         return_layers['layer3'] = 'aux'
     # 重构backbone
     backbone = IntermediateLayerGetter(backbone, return_layers=return_layers)
-
     if pretrain_backbone:
-        print("loading resnet50-backnone weight...")
-        # 载入resnet50 backbone预训练权重
+        print("loading resnet101-backnone weight...")
         missing_keys, unexpected_keys = backbone.load_state_dict(torch.load("../../input/pre-trained/resnet50-imagenet.pth", map_location='cpu'), strict=False)
         if len(missing_keys) != 0 or len(unexpected_keys) != 0:
             print("missing_keys: ", missing_keys)
             print("unexpected_keys: ", unexpected_keys)
-
-    contrast=None
-    attention=None
-    attention_name = args.attention
-    if args.contrast != -1:
-        contrast = contrast_head(256, args.project_dim)
-        if attention_name == "cbam":
-            attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
-        elif attention_name == "selfattention":
-            attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=1)
 
     aux_classifier = None
     # why using aux: https://github.com/pytorch/vision/issues/4292
     if aux:
         aux_classifier = FCNHead(aux_inplanes, num_classes)
 
-    classifier = DeepLabHead(out_inplanes, num_classes)
+    classifier = DeepLabHead(out_inplanes, num_classes, args.contrast, args.attention)
 
-    memory_size = args.memory_size
-
-    model = DeepLabV3(backbone, classifier, aux_classifier, contrast, memory_size, attention, attention_name)
+    model = DeepLabV3(args, backbone, classifier, aux_classifier)
 
     return model
 
