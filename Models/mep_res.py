@@ -108,17 +108,11 @@ class ASPPPooling(nn.Sequential):
 class ASPP(nn.Module):
     def __init__(self, in_channels: int, atrous_rates: List[int], contrast, attention, out_channels: int = 256) -> None:
         super(ASPP, self).__init__()
-        modules = [
-            nn.Sequential(nn.Conv2d(in_channels, out_channels, 1, bias=False),
-                          nn.BatchNorm2d(out_channels),
-                          nn.ReLU(inplace=True))
-        ]
+        modules = []
 
         rates = tuple(atrous_rates)
         for rate in rates:
             modules.append(ASPPConv(in_channels, out_channels, rate))
-
-        modules.append(ASPPPooling(in_channels, out_channels))
 
         self.convs = nn.ModuleList(modules)
 
@@ -136,26 +130,18 @@ class ASPP(nn.Module):
     def forward(self, x: torch.Tensor) -> torch.Tensor:
         _res = []
         _aspp = []
-        _sum = []
         count = 0
         for conv in self.convs:
             temp = conv(x)
-            if count >0 and count < 4:
-                _aspp.append(temp)
-            else:
-                _res.append(temp)
+            _aspp.append(temp)
             count += 1
-            _sum.append(temp)
         
-        if self.contrast != -1:
-            down, up = self.mep(_aspp)
-            for i in up:
-                _res.append(i)
-            res = torch.cat(_res, dim=1)
-            return self.project(res), down
-        else:
-            sum = torch.cat(_sum, dim=1)
-            return self.project(sum)
+        down, up = self.mep(_aspp)
+        for i in up:
+            _res.append(i)
+        res = torch.cat(_res, dim=1)
+        return self.project(res), down
+
 
 
 class DeepLabHead(nn.Sequential):
