@@ -79,52 +79,49 @@ class DeepLabV3(nn.Module):
 
         return result
 
+class MEPCover(nn.Module):
 
-class ASPPConv(nn.Sequential):
     def __init__(self, in_channels: int, out_channels: int, dilation: int) -> None:
-        super(ASPPConv, self).__init__(
-            nn.Conv2d(in_channels, out_channels, 3, padding=dilation, dilation=dilation, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
+        super(MEPCover, self).__init__()
 
+        self.conv3 = nn.Conv2d(in_channels, out_channels, 3, padding=dilation, dilation=dilation, bias=False)
+        self.bn3 = nn.BatchNorm2d(out_channels)
+        self.relu = nn.ReLU(inplace=True)
 
-class ASPPPooling(nn.Sequential):
-    def __init__(self, in_channels: int, out_channels: int) -> None:
-        super(ASPPPooling, self).__init__(
-            nn.AdaptiveAvgPool2d(1),
-            nn.Conv2d(in_channels, out_channels, 1, bias=False),
-            nn.BatchNorm2d(out_channels),
-            nn.ReLU(inplace=True)
-        )
+        self.conv1 = nn.Conv2d(in_channels, out_channels, 1, bias=False)
+        self.bn1 = nn.BatchNorm2d(out_channels)
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        size = x.shape[-2:]
-        for mod in self:
-            x = mod(x)
-        return F.interpolate(x, size=size, mode='bilinear', align_corners=False)
+    def forward(self, x):
+        identity = x
 
+        out = self.conv3(x)
+        out = self.bn3(out)
 
-class ASPP(nn.Module):
+        identity = self.conv1(x)
+        identity = self.bn1(identity)
+
+        out += identity
+        out = self.relu(out)
+
+        return out
+
+class MEP(nn.Module):
     def __init__(self, in_channels: int, atrous_rates: List[int], contrast, attention, out_channels: int = 256) -> None:
-        super(ASPP, self).__init__()
-        modules = []
+        super(MEP, self).__init__()
 
+        modules = []
         rates = tuple(atrous_rates)
         for rate in rates:
-            modules.append(ASPPConv(in_channels, out_channels, rate))
-
+            modules.append(MEPCover(in_channels, out_channels, rate))
         self.convs = nn.ModuleList(modules)
 
         self.project = nn.Sequential(
             nn.Conv2d(len(self.convs) * out_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5)
-        )
-        if contrast != -1:
-            self.contrast = contrast
-            self.mep = contrast_head(256, 128, attention)
+            nn.Dropout(0.5))
+        
+        self.mep = contrast_head(256, 128, attention)
         
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -147,7 +144,7 @@ class ASPP(nn.Module):
 class DeepLabHead(nn.Sequential):
     def __init__(self, in_channels: int, num_classes: int, contrast, attention) -> None:
         super(DeepLabHead, self).__init__(
-            ASPP(in_channels, [12, 24, 36], contrast, attention),
+            MEP(in_channels, [12, 24, 36], contrast, attention),
             nn.Conv2d(256, 256, 3, padding=1, bias=False),
             nn.BatchNorm2d(256),
             nn.ReLU(inplace=True),
