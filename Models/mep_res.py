@@ -243,7 +243,7 @@ class contrast_head(nn.Module):
 def mep_res(args, aux, num_classes=21, pretrain_backbone=False):
     model_name = args.model_name
     
-    backbone = eval("resnet."+model_name.rsplit("_",1)[1])(replace_stride_with_dilation=[False, True, True])
+    backbone = eval("resnet"+model_name.rsplit("_",1)[1])(replace_stride_with_dilation=[False, True, True])
             
     out_inplanes = 2048
     aux_inplanes = 1024
