@@ -9,7 +9,10 @@ def create_model(args):
     
 
     if  pre_trained in ["resnet50-imagenet.pth", "resnet101-imagenet.pth"]:
-        model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=True)
+        if  "mep_res" in model_name:
+            model = eval("Models."+model_name.rsplit("_",1)[0])(args, aux=aux, num_classes=num_classes, pretrain_backbone=True)
+        else:
+            model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=True)
     else:
         model = eval("Models."+model_name)(args, aux=aux, num_classes=num_classes, pretrain_backbone=False)
 
