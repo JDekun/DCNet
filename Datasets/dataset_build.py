@@ -3,10 +3,7 @@ from .cityscapes_gf import Cityscapes
 import os, torch
 
 def Pre_datasets(args):
-    if "../../input/" in args.data_path:
-        data_path = args.data_path
-    else:
-        data_path = "../../input/" + args.data_path
+    data_path = "../../input/" + args.data_path
     # check voc root
     if os.path.exists(os.path.join(data_path)) is False:
         raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(data_path))

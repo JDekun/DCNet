@@ -106,7 +106,7 @@ class MEPCover(nn.Module):
         return out
 
 class MEP(nn.Module):
-    def __init__(self, in_channels: int, atrous_rates: List[int], contrast, attention, out_channels: int = 256) -> None:
+    def __init__(self, in_channels: int, atrous_rates: List[int], contrast, attention, out_channels: int = 512) -> None:
         super(MEP, self).__init__()
 
         modules = []
@@ -119,9 +119,9 @@ class MEP(nn.Module):
             nn.Conv2d(len(self.convs) * out_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5))
+            nn.Dropout(0.1))
         
-        self.mep = contrast_head(256, 128, attention)
+        self.mep = contrast_head(512, 256, attention)
         
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -145,10 +145,10 @@ class DeepLabHead(nn.Sequential):
     def __init__(self, in_channels: int, num_classes: int, contrast, attention) -> None:
         super(DeepLabHead, self).__init__(
             MEP(in_channels, [12, 24, 36], contrast, attention),
-            nn.Conv2d(256, 256, 3, padding=1, bias=False),
-            nn.BatchNorm2d(256),
+            nn.Conv2d(512, 512, 3, padding=1, bias=False),
+            nn.BatchNorm2d(512),
             nn.ReLU(inplace=True),
-            nn.Conv2d(256, num_classes, 1)
+            nn.Conv2d(512, num_classes, 1)
         )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
