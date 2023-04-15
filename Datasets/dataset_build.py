@@ -1,12 +1,15 @@
-from .pascal_voc import VOCSegmentation, get_transform
+from .pascal_voc import VOCSegmentation, get_transformargs.data_path
 from .cityscapes_gf import Cityscapes
 import os, torch
 
 def Pre_datasets(args):
-    args.data_path = "../../input/" + args.data_path
+    if "../../input/" in args.data_path:
+        data_path = args.data_path
+    else:
+        data_path = "../../input/" + args.data_path
     # check voc root
-    if os.path.exists(os.path.join(args.data_path)) is False:
-        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(args.data_path))
+    if os.path.exists(os.path.join(data_path)) is False:
+        raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(data_path))
 
     # load train data set
     train_dataset, val_dataset = datasets_load(args)
@@ -19,7 +22,7 @@ def Pre_datasets(args):
         train_sampler = torch.utils.data.RandomSampler(train_dataset)
         test_sampler = torch.utils.data.SequentialSampler(val_dataset)
 
-    if 'pascal-voc-2012' in args.data_path :
+    if 'pascal-voc-2012' in data_path :
         train_data_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.batch_size,
             sampler=train_sampler, num_workers=args.workers,
@@ -31,7 +34,7 @@ def Pre_datasets(args):
             sampler=test_sampler, num_workers=args.workers,
             pin_memory=True,
             collate_fn=train_dataset.collate_fn)
-    elif 'cityscapes' in args.data_path :
+    elif 'cityscapes' in data_path :
         train_data_loader = torch.utils.data.DataLoader(
             train_dataset, batch_size=args.batch_size,
             sampler=train_sampler, num_workers=args.workers,
@@ -48,24 +51,24 @@ def Pre_datasets(args):
 
 def datasets_load(args):
     # load train data set
-    if "pascal-voc-2012" in args.data_path:
+    if "pascal-voc-2012" in data_path:
         # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> train.txt
-        train_dataset = VOCSegmentation(args.data_path,
+        train_dataset = VOCSegmentation(data_path,
                                         year="2012",
                                         transforms=get_transform(train=True),
                                         txt_name=args.data_train_type)
         # load validation data set
         # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> val.txt
-        val_dataset = VOCSegmentation(args.data_path,
+        val_dataset = VOCSegmentation(data_path,
                                     year="2012",
                                     transforms=get_transform(train=False),
                                     txt_name="val.txt")
-    elif "cityscapes" in args.data_path:
+    elif "cityscapes" in data_path:
         crop_size = (1024, 512)
         # crop_size = (769, 769)
         # crop_size = (513, 513)
         train_dataset = Cityscapes(
-                            root=args.data_path,
+                            root=data_path,
                             list_path="Datasets/list/"+args.data_train_type,
                             num_samples=None,
                             num_classes=19,
@@ -81,7 +84,7 @@ def datasets_load(args):
         # test_size = (769, 769)
         # test_size = (513, 513)
         val_dataset = Cityscapes(
-                            root=args.data_path,
+                            root=data_path,
                             list_path="Datasets/list/val.txt",
                             num_samples=None,
                             num_classes=19,
