@@ -12,7 +12,7 @@ def Pre_datasets(args):
         raise FileNotFoundError("VOCdevkit dose not in path:'{}'.".format(data_path))
 
     # load train data set
-    train_dataset, val_dataset = datasets_load(args)
+    train_dataset, val_dataset = datasets_load(args, data_path)
 
     print("Creating data loaders")
     if args.distributed:
@@ -49,7 +49,7 @@ def Pre_datasets(args):
 
 
 
-def datasets_load(args):
+def datasets_load(args, data_path):
     # load train data set
     if "pascal-voc-2012" in data_path:
         # VOCdevkit -> VOC2012 -> ImageSets -> Segmentation -> train.txt
