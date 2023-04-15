@@ -22,6 +22,20 @@ from train_utils.distributed_utils import is_main_process
 
 
 def main(args):
+    if args.resume:
+        # If map_location is missing, torch.load will first load the module to CPU
+        # and then copy each parameter to where it was saved,
+        # which would result in all processes on the same machine using the same set of devices.
+        checkpoint = torch.load("../../input/resume/"+args.resume, map_location='cpu')  # 读取之前保存的权重文件(包括优化器以及学习率策略)
+        args = checkpoint['args']
+
+    set_seed(args.seed)
+
+    if args.checkpoint_dir:
+        args.checkpoint_dir = args.checkpoint_dir + "/" + args.name_date
+        mkdir(args.checkpoint_dir)
+        mkdir(args.checkpoint_dir + "/checkpoints")
+
     # segmentation nun_classes(background)
     if args.data_path == "cityscapes":
         args.num_classes = 19
@@ -72,12 +86,7 @@ def main(args):
     lr_scheduler = create_lr_scheduler(optimizer, len(train_data_loader)//K, args.epochs, warmup=True)
 
     # 如果传入resume参数，即上次训练的权重地址，则接着上次的参数训练
-    if args.resume:
-        # If map_location is missing, torch.load will first load the module to CPU
-        # and then copy each parameter to where it was saved,
-        # which would result in all processes on the same machine using the same set of devices.
-        checkpoint = torch.load("../../input/resume/"+args.resume, map_location='cpu')  # 读取之前保存的权重文件(包括优化器以及学习率策略)
-        
+    if args.resume:        
         missing_keys, unexpected_keys = model_without_ddp.load_state_dict(checkpoint['model'])
         optimizer.load_state_dict(checkpoint['optimizer'])
         lr_scheduler.load_state_dict(checkpoint['lr_scheduler'])
@@ -300,12 +309,5 @@ if __name__ == "__main__":
     parser.add_argument('--attention', default="", type=str, help='')
 
     args = parser.parse_args()
-
-    set_seed(args.seed)
-
-    if args.checkpoint_dir:
-        args.checkpoint_dir = args.checkpoint_dir + "/" + args.name_date
-        mkdir(args.checkpoint_dir)
-        mkdir(args.checkpoint_dir + "/checkpoints")
 
     main(args)
