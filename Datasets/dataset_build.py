@@ -1,4 +1,4 @@
-from .pascal_voc import VOCSegmentation, get_transformargs.data_path
+from .pascal_voc import VOCSegmentation, get_transform
 from .cityscapes_gf import Cityscapes
 import os, torch
 

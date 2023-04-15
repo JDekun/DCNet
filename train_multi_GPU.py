@@ -31,8 +31,8 @@ def main(args):
 
     set_seed(args.seed)
 
-    if args.checkpoint_dir:
-        args.checkpoint_dir = args.checkpoint_dir + "/" + args.name_date
+    if args.name_date:
+        args.checkpoint_dir = "./results/" + args.name_date
         mkdir(args.checkpoint_dir)
         mkdir(args.checkpoint_dir + "/checkpoints")
 
