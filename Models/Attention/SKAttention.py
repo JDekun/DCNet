@@ -56,6 +56,7 @@ class SKAttention(nn.Module):
         ### reduction channel
         S=U.mean(-1).mean(-1) #bs,c
         Z=self.fc(S) #bs,d
+        print(Z.shape)
 
         ### calculate attention weight
         weights=[]
