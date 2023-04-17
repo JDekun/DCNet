@@ -6,3 +6,4 @@ from .aspp_contrast import aspp_contrast_resnet50, aspp_contrast_resnet101
 from .mep import mep_resnet50, mep_resnet101
 
 from .mep_res import mep_res
+from .mep_sk import mep_sk
