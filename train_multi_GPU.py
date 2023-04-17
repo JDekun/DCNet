@@ -29,7 +29,9 @@ def main(args):
         checkpoint = torch.load("../../input/resume/"+args.resume, map_location='cpu')  # 读取之前保存的权重文件(包括优化器以及学习率策略)
         # wandb_model = args.wandb_model
         # run_id = args.run_id
+        resume = args.resume
         args = checkpoint['args']
+        args.resume = resume
         # args.wandb_model = wandb_model
         # args.run_id = run_id
 
