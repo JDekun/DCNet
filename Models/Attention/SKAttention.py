@@ -56,12 +56,12 @@ class SKAttention(nn.Module):
         ### reduction channel
         S=U.mean(-1).mean(-1) #bs,c
         Z=self.fc(S) #bs,d
-        print(Z.shape)
 
         ### calculate attention weight
         weights=[]
         for fc in self.fcs:
             weight=fc(Z)
+            print(weight.shape)
             weights.append(weight.view(bs,c,1,1)) #bs,channel
         attention_weughts=torch.stack(weights,0)#k,bs,channel,1,1
         attention_weughts=self.softmax(attention_weughts)#k,bs,channel,1,1
