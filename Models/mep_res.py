@@ -112,16 +112,16 @@ class MEP(nn.Module):
         modules = []
         rates = tuple(atrous_rates)
         for rate in rates:
-            modules.append(MEPCover(in_channels, out_channels, rate))
+            modules.append(MEPCover(in_channels, 512, rate))
         self.convs = nn.ModuleList(modules)
 
         self.project = nn.Sequential(
             nn.Conv2d(len(self.convs) * out_channels, out_channels, 1, bias=False),
             nn.BatchNorm2d(out_channels),
             nn.ReLU(inplace=True),
-            nn.Dropout(0.5))
+            nn.Dropout(0.1))
         
-        self.mep = contrast_head(256, 128, attention)
+        self.mep = contrast_head(512, 256, attention)
         
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -137,7 +137,7 @@ class MEP(nn.Module):
         for i in up:
             _res.append(i)
         res = torch.cat(_res, dim=1)
-        return self.project(res), down
+        return self.project(res), up
 
 
 
@@ -189,16 +189,16 @@ class contrast_head(nn.Module):
         up = []
         for i in range(3):
             down.append(ASPPDown(in_channels, pre_dim))
-            up.append(ASPPUp(pre_dim, in_channels))
+            up.append(ASPPUp(pre_dim, pre_dim))
 
         self.down = nn.ModuleList(down)
         self.up = nn.ModuleList(up)
 
         if attention == "cbam":
-            self.attention = CBAMBlock(channel=128,reduction=8,kernel_size=7)
+            self.attention = CBAMBlock(channel=256,reduction=8,kernel_size=7)
         elif "selfattention" in attention:
             head = int(attention.split("_")[1])
-            self.attention = ScaledDotProductAttention(d_model=128, d_k=128, d_v=128, h=head)
+            self.attention = ScaledDotProductAttention(d_model=256, d_k=256, d_v=256, h=head)
         self.attention_name = attention
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
@@ -207,17 +207,17 @@ class contrast_head(nn.Module):
         count = 0
         for conv in self.down:
             temp = conv(x[count])
-
-            if self.attention_name == "cbam":
-                temp = self.attention(temp)
-            elif "selfattention" in self.attention_name:
-                temp = self.attention(temp, temp, temp)
-            
             _res.append(temp)
             count += 1
         cou = 0
         for con in self.up:
             temp = con(_res[cou])
+
+            if self.attention_name == "cbam":
+                temp = self.attention(temp)
+            elif "selfattention" in self.attention_name:
+                temp = self.attention(temp, temp, temp)
+
             _con.append(temp)
             cou += 1
         return _res, _con
