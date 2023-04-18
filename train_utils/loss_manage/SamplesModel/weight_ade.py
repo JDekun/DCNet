@@ -33,8 +33,11 @@ def weight_ade_softmax(this_y_hat, this_y, cls_id, ade):
     hard_weight = easy_rate # ↓ 难样本的权重在上升
     easy_weight = 1-easy_rate # ↓ 简单样本的权重在下降
 
-    hard = math.exp(hard_weight)/(math.exp(hard_weight)+math.exp(easy_weight))
-    easy = math.exp(easy_weight)/(math.exp(hard_weight)+math.exp(easy_weight))
+    H = math.exp(hard_weight)
+    E = math.exp(easy_weight)
+
+    hard = H/(H+E)
+    easy = E/(H+E)
 
     # <<<<
     
