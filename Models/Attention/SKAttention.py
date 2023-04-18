@@ -43,7 +43,7 @@ class SKAttention(nn.Module):
 
 
 
-    def forward(self, x):
+    def forward(self, x, is_eval):
         bs, _, _, _ = x.size()
         c = self.channel
         conv_outs=[]
@@ -69,8 +69,11 @@ class SKAttention(nn.Module):
 
         ### fuse
         V=(attention_weughts*feats).sum(0)
-        mlp = self.mlp(V)
-        return V, mlp
+        if is_eval:
+            return V
+        else:
+            mlp = self.mlp(V)
+            return V, mlp
 
         
 
