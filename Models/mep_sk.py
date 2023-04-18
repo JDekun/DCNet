@@ -54,7 +54,7 @@ class DeepLabV3(nn.Module):
         result = OrderedDict()
 
         x = features["out"]
-        x = self.classifier(x)
+        x = self.classifier(x, is_eval)
         # 使用双线性插值还原回原图尺度
         out = F.interpolate(x["out"], size=input_shape, mode='bilinear', align_corners=False)
         result["out"] = out
@@ -147,17 +147,21 @@ class SkHead(nn.Sequential):
             nn.Conv2d(256, num_classes, 1)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x: torch.Tensor, is_eval) -> torch.Tensor:
         out = OrderedDict()
         count = 0
         for modul in self:
             if count == 0:
-                x, mlp = modul(x)
+                if is_eval:
+                    x = modul(x,is_eval)
+                else:
+                    x, mlp = modul(x,is_eval)
             else:
                 x = modul(x)
             count =count + 1
         out['out'] = x
-        out['aspp'] = mlp
+        if is_eval == False:
+            out['aspp'] = mlp
         return out
 
 
