@@ -45,6 +45,7 @@ def Sampling(type, epoch, epochs, X, Y, labels, predict, ignore_label: int = 255
                 X_[X_ptr, 0, :] = ade_x
                 Y_[X_ptr, 0, :] = ade_y
                 y_[X_ptr] = cls_id
+                X_ptr += 1
             else:  
                 if "adapt_excite" in type:
                     n = int(type.split('_')[-1])
