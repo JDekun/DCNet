@@ -265,7 +265,7 @@ if __name__ == "__main__":
                         metavar='W', help='weight decay (default: 1e-4)',
                         dest='weight_decay')
     # 训练过程打印信息的频率
-    parser.add_argument('--print_freq', default=50, type=int, help='print frequency')
+    parser.add_argument('--print_freq', default=40, type=int, help='print frequency')
     # 文件保存地址
     parser.add_argument('--checkpoint_dir', default='./results', help='path where to save')
     # 基于上次的训练结果接着训练
