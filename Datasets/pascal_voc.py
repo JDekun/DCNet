@@ -94,8 +94,8 @@ class SegmentationPresetEval:
         return self.transforms(img, target)
 
 def get_transform(train):
-    base_size = 512
-    crop_size = 512
+    base_size = 513
+    crop_size = 513
 
     return SegmentationPresetTrain(base_size, crop_size) if train else SegmentationPresetEval(base_size)
 
