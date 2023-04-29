@@ -10,7 +10,7 @@ def optim_manage(args, model_without_ddp):
 
     # decode
     params = [p for p in model_without_ddp.classifier.parameters() if p.requires_grad]
-    params_to_optimize.append({"params": params, "lr": args.lr * 10})
+    params_to_optimize.append({"params": params, "lr": args.lr })
     # if model_without_ddp.contrast:
     #     params = [p for p in model_without_ddp.contrast.parameters() if p.requires_grad]
     #     params_to_optimize.append({"params": params, "lr": args.lr * 10})
@@ -18,7 +18,7 @@ def optim_manage(args, model_without_ddp):
     # aux
     if args.aux:
         params = [p for p in model_without_ddp.aux_classifier.parameters() if p.requires_grad]
-        params_to_optimize.append({"params": params, "lr": args.lr * 10}) 
+        params_to_optimize.append({"params": params, "lr": args.lr}) 
             
     optimizer = torch.optim.SGD(
         params_to_optimize,
