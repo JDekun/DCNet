@@ -255,7 +255,7 @@ if __name__ == "__main__":
     parser.add_argument('-j', '--workers', default=4, type=int, metavar='N',
                         help='number of data loading workers (default: 4)')
     # 训练学习率，这里默认设置成0.0001，如果效果不好可以尝试加大学习率
-    parser.add_argument('--lr', default=0.01, type=float,
+    parser.add_argument('--lr', default=0.001, type=float,
                         help='initial learning rate')
     # SGD的momentum参数
     parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
